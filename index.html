@@ -1206,396 +1206,488 @@
     }
 
     // ===================== ATTENDANCE =====================
-    function AttendancePage({ user, role, viewAs }) {
-      const effectiveRole = viewAs || role;
-      const [activeTab, setActiveTab] = useState('overview');
-      const [qrActive, setQrActive] = useState(false);
-      const [qrSession, setQrSession] = useState(null);
-      const [timer, setTimer] = useState(120);
-      const [scanResult, setScanResult] = useState(null);
-      const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
-      const [selectedClass, setSelectedClass] = useState('cls1');
-      const [selectedSubject, setSelectedSubject] = useState('sub1');
-      const [showAddStudent, setShowAddStudent] = useState(false);
-      const [showScanConfirm, setShowScanConfirm] = useState(false);
-      const [activeSessions, setActiveSessions] = useState([]);
-      const [newStudent, setNewStudent] = useState({name:'',phone:'',email:'',gender:'Male',classId:'cls1',departmentId:'d1',guardian:'',guardianPhone:'',address:''});
-      const [addResult, setAddResult] = useState(null);
+function AttendancePage({ user, role, viewAs }) {
+  const effectiveRole = viewAs || role;
+  const [activeTab, setActiveTab] = useState('overview');
+  const [qrActive, setQrActive] = useState(false);
+  const [qrSession, setQrSession] = useState(null);
+  const [timer, setTimer] = useState(120);
+  const [scanResult, setScanResult] = useState(null);
+  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [selectedClass, setSelectedClass] = useState('cls1');
+  const [selectedSubject, setSelectedSubject] = useState('sub1');
+  const [showScanConfirm, setShowScanConfirm] = useState(false);
+  const [activeSessions, setActiveSessions] = useState([]);
+  const [newStudent, setNewStudent] = useState({name:'', phone:'', email:'', gender:'Male', classId:'cls1', departmentId:'d1', guardian:'', guardianPhone:'', address:''});
+  const [addResult, setAddResult] = useState(null);
+  const [scanningSessionId, setScanningSessionId] = useState(null);
+  const [qrGenerated, setQrGenerated] = useState(false);
 
-      const student = API.getStudentByUserId(user.id) || (effectiveRole==='STUDENT' && role!=='STUDENT' ? API.getDemoStudent() : null);
-      const teacher = API.getTeacherByUserId(user.id);
-      const isTeacherOrAdmin = effectiveRole === 'TEACHER' || effectiveRole === 'ADMIN';
+  const student = API.getStudentByUserId(user.id) || (effectiveRole==='STUDENT' && role!=='STUDENT' ? API.getDemoStudent() : null);
+  const teacher = API.getTeacherByUserId(user.id);
+  const qrContainerRef = useRef(null);
 
-      // Poll for active QR sessions (for students)
-      useEffect(() => {
-        if (effectiveRole !== 'STUDENT') return;
-        const poll = () => {
-          const sessions = API.getActiveQRSessions(student?.classId);
-          setActiveSessions(sessions || []);
-        };
-        poll();
-        const interval = setInterval(poll, 3000);
-        return () => clearInterval(interval);
-      }, [effectiveRole, student]);
+  // Poll for active QR sessions (for students)
+  useEffect(() => {
+    if (effectiveRole !== 'STUDENT') return;
+    const poll = () => {
+      const sessions = API.getActiveQRSessions(student?.classId);
+      setActiveSessions(sessions || []);
+    };
+    poll();
+    const interval = setInterval(poll, 3000);
+    return () => clearInterval(interval);
+  }, [effectiveRole, student]);
 
-      // Teacher QR timer
-      const timerRef = useRef(null);
-      useEffect(() => {
-        if (qrActive && timer > 0) {
-          timerRef.current = setInterval(() => setTimer(t => { if (t <= 1) { clearInterval(timerRef.current); setQrActive(false); setQrSession(null); showToast('QR session expired','warning'); return 0; } return t - 1; }), 1000);
-        }
-        return () => { if (timerRef.current) clearInterval(timerRef.current); };
-      }, [qrActive]);
+  // Teacher QR timer
+  const timerRef = useRef(null);
+  useEffect(() => {
+    if (qrActive && timer > 0) {
+      timerRef.current = setInterval(() => setTimer(t => { 
+        if (t <= 1) { 
+          clearInterval(timerRef.current); 
+          setQrActive(false); 
+          setQrSession(null); 
+          setQrGenerated(false);
+          showToast('QR session expired','warning'); 
+          return 0; 
+        } 
+        return t - 1; 
+      }), 1000);
+    }
+    return () => { if (timerRef.current) clearInterval(timerRef.current); };
+  }, [qrActive]);
 
-      const startQR = () => {
-        if (!selectedClass || !selectedSubject) { showToast('Please select class and subject','error'); return; }
-        const session = API.createQRSession(teacher?.id||'t1', selectedClass, selectedSubject);
-        setQrSession(session); setQrActive(true); setTimer(120); setScanResult(null);
-        showToast('QR Session started! Students can now scan.','success');
-      };
-
-      const openScanConfirm = (session) => {
-        if (!student) { showToast('Student profile not found','error'); return; }
-        setQrSession(session);
-        setShowScanConfirm(true);
-        setScanResult(null);
-      };
-
-      const confirmScan = () => {
-        if (!qrSession || !student) { showToast('Invalid session','error'); return; }
-        const result = API.scanQR(qrSession.id, student.id);
-        setShowScanConfirm(false);
-        if (result.success) {
-          setScanResult({status:'success',message:`Attendance recorded! Welcome, ${student.name}.`});
-          showToast(`Attendance recorded for ${student.name}!`,'success');
+  // Generate QR code when session starts
+  useEffect(() => {
+    if (qrActive && qrSession && qrContainerRef.current && !qrGenerated) {
+      // Clear previous QR
+      qrContainerRef.current.innerHTML = '';
+      
+      try {
+        // Create QR data with session info
+        const qrData = JSON.stringify({
+          sessionId: qrSession.id,
+          classId: qrSession.classId,
+          subjectId: qrSession.subjectId,
+          teacherId: qrSession.teacherId,
+          expiresAt: qrSession.expiresAt
+        });
+        
+        // Generate real QR code using qrcodejs library
+        if (typeof QRCode !== 'undefined') {
+          new QRCode(qrContainerRef.current, {
+            text: qrData,
+            width: 200,
+            height: 200,
+            colorDark: '#6366f1',
+            colorLight: '#ffffff',
+            correctLevel: QRCode.CorrectLevel.H
+          });
+          setQrGenerated(true);
         } else {
-          setScanResult({status:'error',message:result.error});
-          showToast(result.error,'error');
+          // Fallback if QRCode library not loaded
+          qrContainerRef.current.innerHTML = `
+            <div style="width:200px;height:200px;background:var(--primary-gradient);border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:32px;color:white;flex-direction:column;gap:8px;">
+              <i class="fas fa-qrcode" style="font-size:64px;"></i>
+              <span style="font-size:14px;">QR Code</span>
+              <span style="font-size:10px;opacity:0.7;">Session: ${qrSession.id.slice(-6)}</span>
+            </div>
+          `;
+          showToast('QRCode library not loaded, using fallback','warning');
         }
-        setTimeout(()=>setScanResult(null),6000);
-      };
-
-      const handleBulkAttendance = (studentId, status) => {
-        if (!selectedSubject) { showToast('Please select a subject','error'); return; }
-        API.markAttendance(studentId, selectedSubject, selectedDate, status, teacher?.id||'t1');
-        showToast(`Attendance marked: ${status}`,'success');
-      };
-
-      const handleAddStudent = () => {
-        if (!newStudent.name.trim()) { showToast('Student name is required','error'); return; }
-        if (!newStudent.phone.trim()) { showToast('Phone number is required','error'); return; }
-        if (newStudent.phone.length < 10) { showToast('Phone number must be at least 10 digits','error'); return; }
-        const result = API.addStudent(newStudent);
-        if (result.success) {
-          setAddResult(result);
-          showToast(`Student added! Roll No: ${result.student.rollNo}`,'success');
-          setNewStudent({name:'',phone:'',email:'',gender:'Male',classId:'cls1',departmentId:'d1',guardian:'',guardianPhone:'',address:''});
-          setTimeout(()=>setAddResult(null),5000);
-        } else {
-          showToast('Failed to add student','error');
-        }
-      };
-
-      const attendanceRecords = student ? API.getAttendance(student.id) : [];
-      const stats = student ? (API.getAttendanceStats(student.id) || {}) : {};
-
-      // STUDENT VIEW
-      if (effectiveRole==='STUDENT') return (
-        <div>
-          <div className="stats-grid">
-            <StatCard icon="fa-calendar-check" iconClass="green" label="Overall" value={stats.percentage||0} suffix="%" delay={1} />
-            <StatCard icon="fa-check" iconClass="purple" label="Present" value={stats.present||0} delay={2} />
-            <StatCard icon="fa-clock" iconClass="orange" label="Late" value={stats.late||0} delay={3} />
-            <StatCard icon="fa-times" iconClass="red" label="Absent" value={stats.absent||0} delay={4} />
+      } catch (err) {
+        console.error('QR generation error:', err);
+        qrContainerRef.current.innerHTML = `
+          <div style="width:200px;height:200px;background:#fee2e2;border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:32px;color:#991b1b;flex-direction:column;gap:8px;border:2px solid #ef4444;">
+            <i class="fas fa-exclamation-circle" style="font-size:48px;"></i>
+            <span style="font-size:14px;">Error generating QR</span>
           </div>
-          <div className="grid-2">
-            <div className="card animate-fadeIn stagger-2">
-              <div className="card-header"><h3 className="card-title"><i className="fas fa-qrcode"></i> Scan QR Attendance</h3></div>
-              {activeSessions.length > 0 ? (
+        `;
+        showToast('Error generating QR code','error');
+      }
+    }
+  }, [qrActive, qrSession, qrGenerated]);
+
+  // Start QR Session (Teacher)
+  const startQR = () => {
+    if (!selectedClass || !selectedSubject) { 
+      showToast('Please select class and subject','error'); 
+      return; 
+    }
+    // Check if there's already an active session
+    const existing = DB.qrSessions.find(s => s.active && new Date(s.expiresAt) > new Date() && s.classId === selectedClass);
+    if (existing) {
+      showToast('An active QR session already exists for this class. Wait for it to expire.','warning');
+      return;
+    }
+    
+    const session = API.createQRSession(teacher?.id||'t1', selectedClass, selectedSubject);
+    setQrSession(session); 
+    setQrActive(true); 
+    setTimer(120); 
+    setScanResult(null);
+    setQrGenerated(false);
+    showToast(`📱 QR Session started! Students can scan now.`, 'success');
+  };
+
+  // Open scan confirmation dialog (Student)
+  const openScanConfirm = (session) => {
+    if (!student) { 
+      showToast('Student profile not found','error'); 
+      return; 
+    }
+    setScanningSessionId(session.id);
+    setShowScanConfirm(true);
+    setScanResult(null);
+  };
+
+  // Confirm scan and mark attendance (Student)
+  const confirmScan = () => {
+    if (!scanningSessionId || !student) { 
+      showToast('Invalid session','error'); 
+      return; 
+    }
+    
+    // Find the session
+    const session = DB.qrSessions.find(s => s.id === scanningSessionId);
+    if (!session) {
+      showToast('QR session not found','error');
+      setShowScanConfirm(false);
+      return;
+    }
+    
+    // Check if session is still active
+    if (new Date(session.expiresAt) < new Date()) {
+      showToast('⏰ QR session has expired!','error');
+      setShowScanConfirm(false);
+      setActiveSessions(activeSessions.filter(s => s.id !== scanningSessionId));
+      return;
+    }
+    
+    const result = API.scanQR(scanningSessionId, student.id);
+    setShowScanConfirm(false);
+    if (result.success) {
+      const sub = API.getSubjectById(session.subjectId);
+      setScanResult({
+        status:'success', 
+        message:`✅ Attendance recorded for ${student.name}!`, 
+        details: `📚 ${sub?.name || 'Subject'} | ${new Date().toLocaleDateString()}`
+      });
+      // Refresh active sessions
+      const updated = API.getActiveQRSessions(student?.classId);
+      setActiveSessions(updated);
+      showToast(`✅ Attendance recorded for ${student.name}!`, 'success');
+    } else {
+      setScanResult({
+        status:'error', 
+        message:`❌ ${result.error}`
+      });
+      showToast(result.error, 'error');
+    }
+    setTimeout(()=>setScanResult(null),8000);
+  };
+
+  const handleBulkAttendance = (studentId, status) => {
+    if (!selectedSubject) { showToast('Please select a subject','error'); return; }
+    API.markAttendance(studentId, selectedSubject, selectedDate, status, teacher?.id||'t1');
+    showToast(`Attendance marked: ${status}`,'success');
+  };
+
+  const handleAddStudent = () => {
+    if (!newStudent.name.trim()) { showToast('Student name is required','error'); return; }
+    if (!newStudent.phone.trim()) { showToast('Phone number is required','error'); return; }
+    if (newStudent.phone.length < 10) { showToast('Phone number must be at least 10 digits','error'); return; }
+    const result = API.addStudent(newStudent);
+    if (result.success) {
+      setAddResult(result);
+      showToast(`Student added! Roll No: ${result.student.rollNo}`,'success');
+      setNewStudent({name:'', phone:'', email:'', gender:'Male', classId:'cls1', departmentId:'d1', guardian:'', guardianPhone:'', address:''});
+      setTimeout(()=>setAddResult(null),5000);
+    } else {
+      showToast('Failed to add student','error');
+    }
+  };
+
+  const attendanceRecords = student ? API.getAttendance(student.id) : [];
+  const stats = student ? (API.getAttendanceStats(student.id) || {}) : {};
+
+  // STUDENT VIEW
+  if (effectiveRole==='STUDENT') return (
+    <div>
+      <div className="stats-grid">
+        <StatCard icon="fa-calendar-check" iconClass="green" label="Overall" value={stats.percentage||0} suffix="%" delay={1} />
+        <StatCard icon="fa-check" iconClass="purple" label="Present" value={stats.present||0} delay={2} />
+        <StatCard icon="fa-clock" iconClass="orange" label="Late" value={stats.late||0} delay={3} />
+        <StatCard icon="fa-times" iconClass="red" label="Absent" value={stats.absent||0} delay={4} />
+      </div>
+      <div className="grid-2">
+        <div className="card animate-fadeIn stagger-2">
+          <div className="card-header"><h3 className="card-title"><i className="fas fa-qrcode"></i> Scan QR Attendance</h3></div>
+          {activeSessions.length > 0 ? (
+            <div>
+              <p style={{color:'var(--text-secondary)',marginBottom:'16px',fontSize:'14px'}}>
+                <i className="fas fa-info-circle" style={{color:'var(--primary)'}}></i> {activeSessions.length} active QR session(s) found.
+              </p>
+              {activeSessions.map((session, idx) => {
+                const sub = API.getSubjectById(session.subjectId);
+                const cls = API.getClassById(session.classId);
+                const timeLeft = Math.max(0, Math.floor((new Date(session.expiresAt) - new Date()) / 1000));
+                return (
+                  <div key={idx} style={{padding:'16px',background:'var(--bg-primary)',borderRadius:'12px',marginBottom:'12px',border:'2px solid var(--primary)'}}>
+                    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'8px'}}>
+                      <span style={{fontWeight:700,fontSize:'15px'}}><i className="fas fa-book" style={{color:'var(--primary)'}}></i> {sub?.name || 'Subject'}</span>
+                      <span className="badge badge-success" style={{animation:'pulse-glow 2s infinite'}}><i className="fas fa-circle" style={{fontSize:'8px'}}></i> Active</span>
+                    </div>
+                    <div style={{fontSize:'13px',color:'var(--text-secondary)',marginBottom:'12px'}}>
+                      Class: {cls?.name} · Expires in <strong>{Math.floor(timeLeft/60)}:{(timeLeft%60).toString().padStart(2,'0')}</strong>
+                    </div>
+                    <button className="btn btn-primary btn-block" onClick={()=>openScanConfirm(session)} style={{fontSize:'15px',padding:'12px'}}>
+                      <i className="fas fa-camera"></i> Scan & Confirm Attendance
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div style={{textAlign:'center',padding:'40px 20px'}}>
+              <div style={{width:'120px',height:'120px',background:'var(--bg-primary)',borderRadius:'16px',border:'2px dashed var(--border-color)',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 16px'}}>
+                <i className="fas fa-qrcode" style={{fontSize:'48px',color:'var(--text-light)',opacity:0.5}}></i>
+              </div>
+              <p style={{color:'var(--text-secondary)',fontSize:'15px'}}>No active QR sessions found.</p>
+              <p style={{color:'var(--text-light)',fontSize:'13px',marginTop:'4px'}}>Your teacher hasn't started a QR attendance session yet.</p>
+            </div>
+          )}
+          {scanResult && (
+            <div style={{marginTop:'16px',padding:'16px 20px',borderRadius:'12px',background:scanResult.status==='success'?'#d1fae5':'#fee2e2',border:`2px solid ${scanResult.status==='success'?'#10b981':'#ef4444'}`}}>
+              <div style={{display:'flex',alignItems:'center',gap:'12px'}}>
+                <i className={`fas fa-${scanResult.status==='success'?'check-circle':'exclamation-circle'}`} style={{fontSize:'24px',color:scanResult.status==='success'?'#065f46':'#991b1b'}}></i>
                 <div>
-                  <p style={{color:'var(--text-secondary)',marginBottom:'16px',fontSize:'14px'}}><i className="fas fa-info-circle"></i> {activeSessions.length} active QR session(s) found for your class.</p>
-                  {activeSessions.map((session, idx) => {
-                    const sub = API.getSubjectById(session.subjectId);
-                    const cls = API.getClassById(session.classId);
-                    const timeLeft = Math.max(0, Math.floor((new Date(session.expiresAt) - new Date()) / 1000));
-                    return (
-                      <div key={idx} style={{padding:'16px',background:'var(--bg-primary)',borderRadius:'12px',marginBottom:'12px',border:'1.5px solid var(--border-color)'}}>
-                        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'8px'}}>
-                          <span style={{fontWeight:700,fontSize:'15px'}}><i className="fas fa-book" style={{color:'var(--primary)'}}></i> {sub?.name || 'Subject'}</span>
-                          <span className="badge badge-success"><i className="fas fa-circle" style={{fontSize:'8px'}}></i> Active</span>
-                        </div>
-                        <div style={{fontSize:'13px',color:'var(--text-secondary)',marginBottom:'12px'}}>Class: {cls?.name} · Expires in {Math.floor(timeLeft/60)}:{(timeLeft%60).toString().padStart(2,'0')}</div>
-                        <button className="btn btn-primary btn-block" onClick={()=>openScanConfirm(session)}>
-                          <i className="fas fa-camera"></i> Scan & Confirm Attendance
-                        </button>
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <div style={{textAlign:'center',padding:'32px 20px'}}>
-                  <div className="qr-placeholder" style={{width:'120px',height:'120px',margin:'0 auto 16px',opacity:0.3}}><i className="fas fa-qrcode" style={{fontSize:'48px'}}></i></div>
-                  <p style={{color:'var(--text-secondary)',fontSize:'15px'}}>No active QR sessions found.</p>
-                  <p style={{color:'var(--text-light)',fontSize:'13px',marginTop:'4px'}}>Your teacher hasn't started a QR attendance session yet.</p>
-                </div>
-              )}
-              {scanResult && (
-                <div style={{marginTop:'16px',padding:'14px 18px',borderRadius:'12px',background:scanResult.status==='success'?'#d1fae5':'#fee2e2',border:`1.5px solid ${scanResult.status==='success'?'#10b981':'#ef4444'}`,display:'flex',alignItems:'center',gap:'10px'}}>
-                  <i className={`fas fa-${scanResult.status==='success'?'check-circle':'exclamation-circle'}`} style={{fontSize:'20px',color:scanResult.status==='success'?'#065f46':'#991b1b'}}></i>
-                  <span style={{fontWeight:700,color:scanResult.status==='success'?'#065f46':'#991b1b'}}>{scanResult.message}</span>
-                </div>
-              )}
-            </div>
-            <div className="card animate-fadeIn stagger-3">
-              <div className="card-header"><h3 className="card-title"><i className="fas fa-history"></i> Recent Records</h3></div>
-              <div className="table-container">
-                <table><thead><tr><th>Date</th><th>Subject</th><th>Status</th></tr></thead>
-                <tbody>{(attendanceRecords || []).slice(0,8).map((a,i)=> (
-                  <tr key={i}><td>{a.date}</td><td>{API.getSubjectById(a.subjectId)?.code || 'N/A'}</td>
-                  <td><span className={`badge ${a.status==='PRESENT'?'badge-success':a.status==='LATE'?'badge-warning':'badge-danger'}`}>{a.status}</span></td></tr>
-                ))}</tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-
-          {showScanConfirm && (
-            <Modal isOpen={showScanConfirm} onClose={()=>setShowScanConfirm(false)} title="Confirm Attendance" footer={
-              <><button className="btn btn-secondary" onClick={()=>setShowScanConfirm(false)}>Cancel</button>
-              <button className="btn btn-success" onClick={confirmScan}><i className="fas fa-check"></i> Confirm & Mark Present</button></>
-            }>
-              <div style={{textAlign:'center',padding:'20px'}}>
-                <div style={{width:'80px',height:'80px',borderRadius:'50%',background:'var(--primary-gradient)',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 16px',fontSize:'32px',color:'white'}}><i className="fas fa-user-check"></i></div>
-                <h3 style={{marginBottom:'8px'}}>Verify Your Identity</h3>
-                <p style={{color:'var(--text-secondary)',marginBottom:'20px'}}>Please confirm your details before marking attendance.</p>
-                <div style={{background:'var(--bg-primary)',borderRadius:'12px',padding:'16px',textAlign:'left',marginBottom:'16px'}}>
-                  <div style={{marginBottom:'10px'}}><span style={{color:'var(--text-light)',fontSize:'12px',textTransform:'uppercase',letterSpacing:'0.5px'}}>Name</span><div style={{fontWeight:700}}>{student?.name}</div></div>
-                  <div style={{marginBottom:'10px'}}><span style={{color:'var(--text-light)',fontSize:'12px',textTransform:'uppercase',letterSpacing:'0.5px'}}>Roll Number</span><div style={{fontWeight:700}}>{student?.rollNo}</div></div>
-                  <div style={{marginBottom:'10px'}}><span style={{color:'var(--text-light)',fontSize:'12px',textTransform:'uppercase',letterSpacing:'0.5px'}}>Email</span><div style={{fontWeight:700}}>{user?.email}</div></div>
-                  <div><span style={{color:'var(--text-light)',fontSize:'12px',textTransform:'uppercase',letterSpacing:'0.5px'}}>Class</span><div style={{fontWeight:700}}>{API.getClassById(student?.classId)?.name}</div></div>
-                </div>
-                <p style={{fontSize:'13px',color:'var(--text-light)'}}><i className="fas fa-shield-alt"></i> Your attendance will be recorded with timestamp verification.</p>
-              </div>
-            </Modal>
-          )}
-        </div>
-      );
-
-      // TEACHER / ADMIN VIEW
-      return (
-        <div>
-          <div className="tabs">
-            <button className={`tab ${activeTab==='overview'?'active':''}`} onClick={()=>setActiveTab('overview')}>Overview</button>
-            <button className={`tab ${activeTab==='mark'?'active':''}`} onClick={()=>setActiveTab('mark')}>Mark Attendance</button>
-            <button className={`tab ${activeTab==='qr'?'active':''}`} onClick={()=>setActiveTab('qr')}>QR Manager</button>
-            <button className={`tab ${activeTab==='students'?'active':''}`} onClick={()=>setActiveTab('students')}>Add Students</button>
-          </div>
-
-          {activeTab==='overview' && (
-            <div className="card animate-fadeIn">
-              <div className="card-header"><h3 className="card-title">Attendance Overview</h3></div>
-              <div className="table-container">
-                <table><thead><tr><th>Student</th><th>Roll No</th><th>Overall %</th><th>Present</th><th>Absent</th><th>Status</th></tr></thead>
-                <tbody>{(API.getStudents() || []).map(s=>{ const st=API.getAttendanceStats(s.id); return (
-                  <tr key={s.id}><td className="td-name"><div className="td-avatar">{s.name.charAt(0)}</div><div className="td-info"><span className="name">{s.name}</span><span className="sub">{API.getClassById(s.classId)?.name}</span></div></td>
-                  <td>{s.rollNo}</td><td><div className="progress-bar" style={{width:'80px',display:'inline-block',marginRight:'8px',verticalAlign:'middle'}}><div className={`fill ${(st.percentage||0)>80?'success':(st.percentage||0)>70?'warning':'danger'}`} style={{width:`${st.percentage||0}%`}}></div></div> {st.percentage||0}%</td>
-                  <td>{st.present||0}</td><td>{st.absent||0}</td>
-                  <td><span className={`badge ${(st.percentage||0)>=75?'badge-success':'badge-danger'}`}>{(st.percentage||0)>=75?'Good':'At Risk'}</span></td></tr>
-                );})}</tbody>
-                </table>
-              </div>
-            </div>
-          )}
-
-          {activeTab==='mark' && (
-            <div className="card animate-fadeIn">
-              <div className="card-header"><h3 className="card-title">Mark Attendance - {new Date(selectedDate).toDateString()}</h3></div>
-              <div style={{marginBottom:'20px',display:'flex',gap:'12px',flexWrap:'wrap'}}>
-                <input type="date" className="input" style={{width:'auto'}} value={selectedDate} onChange={e=>setSelectedDate(e.target.value)} />
-                <select className="input" style={{width:'auto'}} value={selectedClass} onChange={e=>setSelectedClass(e.target.value)}>
-                  {(API.getClasses() || []).map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
-                </select>
-                <select className="input" style={{width:'auto'}} value={selectedSubject} onChange={e=>setSelectedSubject(e.target.value)}>
-                  {(API.getSubjects() || []).map(s=><option key={s.id} value={s.id}>{s.name}</option>)}
-                </select>
-              </div>
-              <div className="table-container">
-                <table><thead><tr><th>Student</th><th>Roll No</th><th>Mark Status</th></tr></thead>
-                <tbody>{(API.getStudents() || []).filter(s=>s.classId===selectedClass).map(s=> {
-                  const todayRec = API.getAttendance(s.id,null,selectedDate);
-                  const currentStatus = todayRec.length>0 ? todayRec[0].status : null;
-                  return (
-                    <tr key={s.id}><td className="td-name"><div className="td-avatar">{s.name.charAt(0)}</div><div className="td-info"><span className="name">{s.name}</span></div></td>
-                    <td>{s.rollNo}</td>
-                    <td><div style={{display:'flex',gap:'6px'}}>
-                      <button className={`btn btn-sm ${currentStatus==='PRESENT'?'btn-success':'btn-secondary'}`} onClick={()=>handleBulkAttendance(s.id,'PRESENT')}><i className="fas fa-check"></i> Present</button>
-                      <button className={`btn btn-sm ${currentStatus==='LATE'?'btn-warning':'btn-secondary'}`} onClick={()=>handleBulkAttendance(s.id,'LATE')}><i className="fas fa-clock"></i> Late</button>
-                      <button className={`btn btn-sm ${currentStatus==='ABSENT'?'btn-danger':'btn-secondary'}`} onClick={()=>handleBulkAttendance(s.id,'ABSENT')}><i className="fas fa-times"></i> Absent</button>
-                    </div></td></tr>
-                  );
-                })}</tbody>
-                </table>
-              </div>
-            </div>
-          )}
-
-          {activeTab==='qr' && (
-            <div>
-              <div className="card animate-fadeIn" style={{textAlign:'center',padding:'40px',marginBottom:'24px'}}>
-                <div className="card-header" style={{justifyContent:'center'}}><h3 className="card-title"><i className="fas fa-qrcode"></i> QR Attendance Session</h3></div>
-                <div style={{display:'flex',gap:'12px',justifyContent:'center',marginBottom:'24px',flexWrap:'wrap'}}>
-                  <select className="input" style={{width:'auto',minWidth:'160px'}} value={selectedClass} onChange={e=>setSelectedClass(e.target.value)}>
-                    {(API.getClasses() || []).map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
-                  </select>
-                  <select className="input" style={{width:'auto',minWidth:'200px'}} value={selectedSubject} onChange={e=>setSelectedSubject(e.target.value)}>
-                    {(API.getSubjects() || []).map(s=><option key={s.id} value={s.id}>{s.name}</option>)}
-                  </select>
-                </div>
-                <button className="btn btn-primary btn-lg" onClick={startQR} disabled={qrActive} style={{minWidth:'220px'}}>
-                  {qrActive?<><i className="fas fa-circle-notch fa-spin"></i> Session Active...</>:<><i className="fas fa-play"></i> Start QR Session</>}
-                </button>
-                {qrActive && (
-                  <div style={{marginTop:'32px'}}>
-                    <div className="qr-placeholder animate-pulse-glow" style={{margin:'0 auto'}}><i className="fas fa-qrcode"></i></div>
-                    <div className="qr-timer">{Math.floor(timer/60)}:{(timer%60).toString().padStart(2,'0')}</div>
-                    <p style={{color:'var(--text-secondary)'}}>Students can now scan this code to mark attendance for {API.getSubjectById(selectedSubject)?.name}</p>
-                    <div style={{marginTop:'16px',display:'flex',gap:'8px',justifyContent:'center'}}>
-                      <span className="badge badge-success"><i className="fas fa-wifi"></i> Broadcasting</span>
-                      <span className="badge badge-info"><i className="fas fa-users"></i> Class: {API.getClassById(selectedClass)?.name}</span>
-                    </div>
-                  </div>
-                )}
-              </div>
-              <div className="card animate-fadeIn">
-                <div className="card-header"><h3 className="card-title"><i className="fas fa-history"></i> Recent QR Sessions</h3></div>
-                <div className="table-container">
-                  <table><thead><tr><th>Session ID</th><th>Class</th><th>Subject</th><th>Started</th><th>Status</th></tr></thead>
-                  <tbody>{(DB.qrSessions || []).slice(-5).reverse().map((s,i)=> (
-                    <tr key={i}><td>{s.id.slice(-6)}</td><td>{API.getClassById(s.classId)?.name}</td><td>{API.getSubjectById(s.subjectId)?.name}</td>
-                    <td>{new Date(s.createdAt).toLocaleTimeString()}</td>
-                    <td><span className={`badge ${s.active && new Date(s.expiresAt)>new Date()?'badge-success':'badge-secondary'}`}>{s.active && new Date(s.expiresAt)>new Date()?'Active':'Expired'}</span></td></tr>
-                  ))}</tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {activeTab==='students' && (
-            <div>
-              <div className="grid-2">
-                <div className="card animate-fadeIn">
-                  <div className="card-header"><h3 className="card-title"><i className="fas fa-user-plus"></i> Add New Student</h3></div>
-                  <div className="form-group"><label className="form-label">Full Name *</label><input className="input" placeholder="Enter student full name" value={newStudent.name} onChange={e=>setNewStudent({...newStudent,name:e.target.value})} /></div>
-                  <div className="form-group"><label className="form-label">Phone Number *</label><input className="input" placeholder="Enter phone number" value={newStudent.phone} onChange={e=>setNewStudent({...newStudent,phone:e.target.value})} /></div>
-                  <div className="form-group"><label className="form-label">Email (optional)</label><input className="input" placeholder="Auto-generated if empty" value={newStudent.email} onChange={e=>setNewStudent({...newStudent,email:e.target.value})} /></div>
-                  <div className="grid-2">
-                    <div className="form-group"><label className="form-label">Gender</label><select className="input" value={newStudent.gender} onChange={e=>setNewStudent({...newStudent,gender:e.target.value})}><option>Male</option><option>Female</option><option>Other</option></select></div>
-                    <div className="form-group"><label className="form-label">Class *</label><select className="input" value={newStudent.classId} onChange={e=>setNewStudent({...newStudent,classId:e.target.value})}>{(API.getClasses()||[]).map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select></div>
-                  </div>
-                  <div className="form-group"><label className="form-label">Department *</label><select className="input" value={newStudent.departmentId} onChange={e=>setNewStudent({...newStudent,departmentId:e.target.value})}>{(API.getDepartments()||[]).map(d=><option key={d.id} value={d.id}>{d.name}</option>)}</select></div>
-                  <div className="form-group"><label className="form-label">Guardian Name</label><input className="input" placeholder="Parent/Guardian name" value={newStudent.guardian} onChange={e=>setNewStudent({...newStudent,guardian:e.target.value})} /></div>
-                  <div className="form-group"><label className="form-label">Guardian Phone</label><input className="input" placeholder="Parent/Guardian phone" value={newStudent.guardianPhone} onChange={e=>setNewStudent({...newStudent,guardianPhone:e.target.value})} /></div>
-                  <div className="form-group"><label className="form-label">Address</label><input className="input" placeholder="Student address" value={newStudent.address} onChange={e=>setNewStudent({...newStudent,address:e.target.value})} /></div>
-                  <button className="btn btn-primary btn-block btn-lg" onClick={handleAddStudent}><i className="fas fa-plus"></i> Add Student & Generate Roll No</button>
-                </div>
-
-                <div className="card animate-fadeIn">
-                  <div className="card-header"><h3 className="card-title"><i className="fas fa-id-card"></i> Result</h3></div>
-                  {addResult ? (
-                    <div style={{textAlign:'center',padding:'20px'}}>
-                      <div style={{width:'64px',height:'64px',borderRadius:'50%',background:'var(--success)',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 16px',fontSize:'28px',color:'white'}}><i className="fas fa-check"></i></div>
-                      <h3 style={{marginBottom:'8px'}}>Student Added Successfully!</h3>
-                      <div style={{background:'var(--bg-primary)',borderRadius:'12px',padding:'16px',textAlign:'left',marginTop:'16px'}}>
-                        <div style={{marginBottom:'10px'}}><span style={{color:'var(--text-light)',fontSize:'12px',textTransform:'uppercase'}}>Name</span><div style={{fontWeight:700}}>{addResult.student.name}</div></div>
-                        <div style={{marginBottom:'10px'}}><span style={{color:'var(--text-light)',fontSize:'12px',textTransform:'uppercase'}}>Roll Number</span><div style={{fontWeight:700,color:'var(--primary)',fontSize:'18px'}}>{addResult.student.rollNo}</div></div>
-                        <div style={{marginBottom:'10px'}}><span style={{color:'var(--text-light)',fontSize:'12px',textTransform:'uppercase'}}>Email</span><div style={{fontWeight:700}}>{addResult.user.email}</div></div>
-                        <div><span style={{color:'var(--text-light)',fontSize:'12px',textTransform:'uppercase'}}>Password</span><div style={{fontWeight:700}}>password</div></div>
-                      </div>
-                      <p style={{fontSize:'13px',color:'var(--text-light)',marginTop:'12px'}}><i className="fas fa-info-circle"></i> Student can login with email and password: <strong>password</strong></p>
-                    </div>
-                  ) : (
-                    <div style={{textAlign:'center',padding:'40px 20px'}}>
-                      <i className="fas fa-user-graduate" style={{fontSize:'48px',color:'var(--text-light)',marginBottom:'16px',opacity:0.5}}></i>
-                      <h4 style={{fontWeight:700,marginBottom:'6px'}}>No Student Added Yet</h4>
-                      <p style={{color:'var(--text-secondary)',fontSize:'14px'}}>Fill the form and click "Add Student" to generate roll number automatically.</p>
-                    </div>
-                  )}
+                  <div style={{fontWeight:700,color:scanResult.status==='success'?'#065f46':'#991b1b',fontSize:'15px'}}>{scanResult.message}</div>
+                  {scanResult.details && <div style={{fontSize:'13px',color:'var(--text-secondary)'}}>{scanResult.details}</div>}
                 </div>
               </div>
             </div>
           )}
         </div>
-      );
-    }function TimetablePage({ user, role, viewAs }) {
-      const effectiveRole = viewAs || role;
-      const [selectedClass, setSelectedClass] = useState('cls1');
-      const [selectedDay, setSelectedDay] = useState('Monday');
-      const [showAddModal, setShowAddModal] = useState(false);
-      const [newEntry, setNewEntry] = useState({ day:'Monday', subjectId:'', teacherId:'', time:'', room:'', type:'LECTURE' });
-      const days = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-      const entries = API.getTimetable(selectedClass, selectedDay) || [];
-      const canEdit = effectiveRole==='ADMIN' || effectiveRole==='TEACHER';
+        <div className="card animate-fadeIn stagger-3">
+          <div className="card-header"><h3 className="card-title"><i className="fas fa-history"></i> Recent Records</h3></div>
+          <div className="table-container">
+            <table><thead><tr><th>Date</th><th>Subject</th><th>Status</th></tr></thead>
+            <tbody>{(attendanceRecords || []).slice(0,8).map((a,i)=> (
+              <tr key={i}><td>{a.date}</td><td>{API.getSubjectById(a.subjectId)?.code || 'N/A'}</td>
+              <td><span className={`badge ${a.status==='PRESENT'?'badge-success':a.status==='LATE'?'badge-warning':'badge-danger'}`}>{a.status}</span></td></tr>
+            ))}</tbody>
+            </table>
+          </div>
+        </div>
+      </div>
 
-      const addEntry = () => {
-        if (!newEntry.subjectId || !newEntry.teacherId || !newEntry.time || !newEntry.room) {
-          showToast('Please fill all fields','error','Validation Error'); return;
-        }
-        if (!/^\d{1,2}:\d{2}-\d{1,2}:\d{2}$/.test(newEntry.time)) {
-          showToast('Time must be in format HH:MM-HH:MM','error','Invalid Time'); return;
-        }
-        API.addTimetableEntry({ classId:selectedClass, ...newEntry });
-        setShowAddModal(false); setNewEntry({ day:'Monday', subjectId:'', teacherId:'', time:'', room:'', type:'LECTURE' });
-        showToast('Timetable entry added successfully','success');
-      };
+      {showScanConfirm && (
+        <Modal isOpen={showScanConfirm} onClose={()=>setShowScanConfirm(false)} title="📸 Confirm Attendance" footer={
+          <><button className="btn btn-secondary" onClick={()=>setShowScanConfirm(false)}>Cancel</button>
+          <button className="btn btn-success" onClick={confirmScan} style={{fontSize:'15px',padding:'12px 24px'}}><i className="fas fa-check"></i> Confirm & Mark Present</button></>
+        }>
+          <div style={{textAlign:'center',padding:'20px'}}>
+            <div style={{width:'80px',height:'80px',borderRadius:'50%',background:'var(--primary-gradient)',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 16px',fontSize:'32px',color:'white'}}><i className="fas fa-user-check"></i></div>
+            <h3 style={{marginBottom:'8px'}}>Verify Your Identity</h3>
+            <p style={{color:'var(--text-secondary)',marginBottom:'20px'}}>Confirm your details before marking attendance.</p>
+            <div style={{background:'var(--bg-primary)',borderRadius:'12px',padding:'16px',textAlign:'left',marginBottom:'16px',border:'1px solid var(--border-color)'}}>
+              <div style={{marginBottom:'10px',display:'flex',justifyContent:'space-between'}}>
+                <span style={{color:'var(--text-light)',fontSize:'12px',textTransform:'uppercase',letterSpacing:'0.5px'}}>Name</span>
+                <div style={{fontWeight:700}}>{student?.name}</div>
+              </div>
+              <div style={{marginBottom:'10px',display:'flex',justifyContent:'space-between'}}>
+                <span style={{color:'var(--text-light)',fontSize:'12px',textTransform:'uppercase',letterSpacing:'0.5px'}}>Roll Number</span>
+                <div style={{fontWeight:700}}>{student?.rollNo}</div>
+              </div>
+              <div style={{marginBottom:'10px',display:'flex',justifyContent:'space-between'}}>
+                <span style={{color:'var(--text-light)',fontSize:'12px',textTransform:'uppercase',letterSpacing:'0.5px'}}>Email</span>
+                <div style={{fontWeight:700}}>{user?.email}</div>
+              </div>
+              <div style={{display:'flex',justifyContent:'space-between'}}>
+                <span style={{color:'var(--text-light)',fontSize:'12px',textTransform:'uppercase',letterSpacing:'0.5px'}}>Class</span>
+                <div style={{fontWeight:700}}>{API.getClassById(student?.classId)?.name}</div>
+              </div>
+            </div>
+            <div style={{background:'#dbeafe',borderRadius:'8px',padding:'12px',fontSize:'13px',color:'#1e40af'}}>
+              <i className="fas fa-shield-alt"></i> Your attendance will be recorded with timestamp verification.
+            </div>
+          </div>
+        </Modal>
+      )}
+    </div>
+  );
 
-      const deleteEntry = (id) => { if (confirm('Are you sure you want to delete this timetable entry?')) { API.deleteTimetableEntry(id); showToast('Entry deleted','info'); } };
+  // TEACHER / ADMIN VIEW
+  return (
+    <div>
+      <div className="tabs">
+        <button className={`tab ${activeTab==='overview'?'active':''}`} onClick={()=>setActiveTab('overview')}>Overview</button>
+        <button className={`tab ${activeTab==='mark'?'active':''}`} onClick={()=>setActiveTab('mark')}>Mark Attendance</button>
+        <button className={`tab ${activeTab==='qr'?'active':''}`} onClick={()=>setActiveTab('qr')}>QR Manager</button>
+        <button className={`tab ${activeTab==='students'?'active':''}`} onClick={()=>setActiveTab('students')}>Add Students</button>
+      </div>
 
-      return (
-        <div>
-          <div style={{display:'flex',gap:'12px',flexWrap:'wrap',marginBottom:'24px',alignItems:'center'}}>
-            <select className="input" style={{width:'auto',minWidth:'160px'}} value={selectedClass} onChange={e=>setSelectedClass(e.target.value)}>
-              {(API.getClasses() || []).map(c=><option key={c.id} value={c.id}>{c.name} - {(API.getDepartmentById(c.department)?.code) || c.department}</option>)}
+      {activeTab==='overview' && (
+        <div className="card animate-fadeIn">
+          <div className="card-header"><h3 className="card-title">Attendance Overview</h3></div>
+          <div className="table-container">
+            <table><thead><tr><th>Student</th><th>Roll No</th><th>Overall %</th><th>Present</th><th>Absent</th><th>Status</th></tr></thead>
+            <tbody>{(API.getStudents() || []).map(s=>{ const st=API.getAttendanceStats(s.id); return (
+              <tr key={s.id}><td className="td-name"><div className="td-avatar">{s.name.charAt(0)}</div><div className="td-info"><span className="name">{s.name}</span><span className="sub">{API.getClassById(s.classId)?.name}</span></div></td>
+              <td>{s.rollNo}</td><td><div className="progress-bar" style={{width:'80px',display:'inline-block',marginRight:'8px',verticalAlign:'middle'}}><div className={`fill ${(st.percentage||0)>80?'success':(st.percentage||0)>70?'warning':'danger'}`} style={{width:`${st.percentage||0}%`}}></div></div> {st.percentage||0}%</td>
+              <td>{st.present||0}</td><td>{st.absent||0}</td>
+              <td><span className={`badge ${(st.percentage||0)>=75?'badge-success':'badge-danger'}`}>{(st.percentage||0)>=75?'✅ Good':'⚠️ At Risk'}</span></td></tr>
+            );})}</tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {activeTab==='mark' && (
+        <div className="card animate-fadeIn">
+          <div className="card-header"><h3 className="card-title">Mark Attendance - {new Date(selectedDate).toDateString()}</h3></div>
+          <div style={{marginBottom:'20px',display:'flex',gap:'12px',flexWrap:'wrap'}}>
+            <input type="date" className="input" style={{width:'auto'}} value={selectedDate} onChange={e=>setSelectedDate(e.target.value)} />
+            <select className="input" style={{width:'auto'}} value={selectedClass} onChange={e=>setSelectedClass(e.target.value)}>
+              {(API.getClasses() || []).map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
-            <div className="tabs" style={{margin:0}}>
-              {days.map(d=><button key={d} className={`tab ${selectedDay===d?'active':''}`} onClick={()=>setSelectedDay(d)}>{d.slice(0,3)}</button>)}
+            <select className="input" style={{width:'auto'}} value={selectedSubject} onChange={e=>setSelectedSubject(e.target.value)}>
+              {(API.getSubjects() || []).map(s=><option key={s.id} value={s.id}>{s.name}</option>)}
+            </select>
+          </div>
+          <div className="table-container">
+            <table><thead><tr><th>Student</th><th>Roll No</th><th>Mark Status</th></tr></thead>
+            <tbody>{(API.getStudents() || []).filter(s=>s.classId===selectedClass).map(s=> {
+              const todayRec = API.getAttendance(s.id,null,selectedDate);
+              const currentStatus = todayRec.length>0 ? todayRec[0].status : null;
+              return (
+                <tr key={s.id}><td className="td-name"><div className="td-avatar">{s.name.charAt(0)}</div><div className="td-info"><span className="name">{s.name}</span></div></td>
+                <td>{s.rollNo}</td>
+                <td><div style={{display:'flex',gap:'6px',flexWrap:'wrap'}}>
+                  <button className={`btn btn-sm ${currentStatus==='PRESENT'?'btn-success':'btn-secondary'}`} onClick={()=>handleBulkAttendance(s.id,'PRESENT')}><i className="fas fa-check"></i> Present</button>
+                  <button className={`btn btn-sm ${currentStatus==='LATE'?'btn-warning':'btn-secondary'}`} onClick={()=>handleBulkAttendance(s.id,'LATE')}><i className="fas fa-clock"></i> Late</button>
+                  <button className={`btn btn-sm ${currentStatus==='ABSENT'?'btn-danger':'btn-secondary'}`} onClick={()=>handleBulkAttendance(s.id,'ABSENT')}><i className="fas fa-times"></i> Absent</button>
+                  {currentStatus && <span className="badge badge-secondary">✅ Already Marked</span>}
+                </div></td></tr>
+              );
+            })}</tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {activeTab==='qr' && (
+        <div>
+          <div className="card animate-fadeIn" style={{textAlign:'center',padding:'40px',marginBottom:'24px'}}>
+            <div className="card-header" style={{justifyContent:'center'}}><h3 className="card-title"><i className="fas fa-qrcode"></i> QR Attendance Session</h3></div>
+            <div style={{display:'flex',gap:'12px',justifyContent:'center',marginBottom:'24px',flexWrap:'wrap'}}>
+              <select className="input" style={{width:'auto',minWidth:'160px'}} value={selectedClass} onChange={e=>setSelectedClass(e.target.value)}>
+                {(API.getClasses() || []).map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+              <select className="input" style={{width:'auto',minWidth:'200px'}} value={selectedSubject} onChange={e=>setSelectedSubject(e.target.value)}>
+                {(API.getSubjects() || []).map(s=><option key={s.id} value={s.id}>{s.name}</option>)}
+              </select>
             </div>
-            {canEdit && <button className="btn btn-primary btn-sm" onClick={()=>setShowAddModal(true)} style={{marginLeft:'auto'}}><i className="fas fa-plus"></i> Add Entry</button>}
+            <button className="btn btn-primary btn-lg" onClick={startQR} disabled={qrActive} style={{minWidth:'220px',padding:'14px 32px',fontSize:'16px'}}>
+              {qrActive?<><i className="fas fa-circle-notch fa-spin"></i> Session Active...</>:<><i className="fas fa-play"></i> Start QR Session</>}
+            </button>
+            {qrActive && qrSession && (
+              <div style={{marginTop:'32px'}}>
+                <div ref={qrContainerRef} style={{display:'flex',justifyContent:'center',marginBottom:'16px'}}></div>
+                <div className="qr-timer">{Math.floor(timer/60)}:{(timer%60).toString().padStart(2,'0')}</div>
+                <p style={{color:'var(--text-secondary)',fontSize:'15px'}}>
+                  <i className="fas fa-wifi" style={{color:'var(--success)'}}></i> Students can scan this QR code to mark attendance
+                </p>
+                <div style={{marginTop:'16px',display:'flex',gap:'8px',justifyContent:'center',flexWrap:'wrap'}}>
+                  <span className="badge badge-success" style={{padding:'6px 14px',fontSize:'12px'}}><i className="fas fa-wifi"></i> Broadcasting</span>
+                  <span className="badge badge-info" style={{padding:'6px 14px',fontSize:'12px'}}><i className="fas fa-users"></i> Class: {API.getClassById(selectedClass)?.name}</span>
+                  <span className="badge badge-primary" style={{padding:'6px 14px',fontSize:'12px'}}><i className="fas fa-book"></i> {API.getSubjectById(selectedSubject)?.name}</span>
+                  <span className="badge badge-warning" style={{padding:'6px 14px',fontSize:'12px'}}><i className="fas fa-clock"></i> Expires in {Math.floor(timer/60)}:{(timer%60).toString().padStart(2,'0')}</span>
+                </div>
+              </div>
+            )}
+            {!qrActive && !qrSession && (
+              <div style={{marginTop:'16px'}}>
+                <p style={{color:'var(--text-light)',fontSize:'14px'}}>Click "Start QR Session" to generate a scannable QR code</p>
+              </div>
+            )}
           </div>
           <div className="card animate-fadeIn">
-            <div className="card-header"><h3 className="card-title">{selectedDay} - {API.getClasses().find(c=>c.id===selectedClass)?.name}</h3></div>
-            {entries && entries.length>0 ? (
-              <div className="table-container">
-                <table><thead><tr><th>Time</th><th>Subject</th><th>Teacher</th><th>Room</th><th>Type</th>{canEdit&&<th>Action</th>}</tr></thead>
-                <tbody>{entries.sort((a,b)=>a.time.localeCompare(b.time)).map(e=> {
-                  const sub = API.getSubjectById(e.subjectId);
-                  const teacher = API.getTeachers().find(t=>t.id===e.teacherId);
-                  return (
-                    <tr key={e.id}><td><span className="badge badge-primary">{e.time}</span></td>
-                    <td><strong>{sub?.name || 'Unknown'}</strong><div style={{fontSize:'12px',color:'var(--text-light)'}}>{sub?.code}</div></td>
-                    <td>{teacher?.name || 'N/A'}</td><td>{e.room}</td>
-                    <td><span className={`badge ${e.type==='LAB'?'badge-warning':'badge-info'}`}>{e.type}</span></td>
-                    {canEdit&&<td><button className="btn btn-sm btn-danger" onClick={()=>deleteEntry(e.id)}><i className="fas fa-trash"></i></button></td>}</tr>
-                  );
-                })}</tbody>
-                </table>
-              </div>
-            ) : <EmptyState icon="fa-calendar-times" title="No classes" description={`No timetable entries for ${selectedDay}`} />}
+            <div className="card-header"><h3 className="card-title"><i className="fas fa-history"></i> Recent QR Sessions</h3></div>
+            <div className="table-container">
+              <table><thead><tr><th>Session ID</th><th>Class</th><th>Subject</th><th>Started</th><th>Status</th></tr></thead>
+              <tbody>{(DB.qrSessions || []).slice(-5).reverse().map((s,i)=> (
+                <tr key={i}><td>#{s.id.slice(-6)}</td><td>{API.getClassById(s.classId)?.name}</td><td>{API.getSubjectById(s.subjectId)?.name}</td>
+                <td>{new Date(s.createdAt).toLocaleTimeString()}</td>
+                <td><span className={`badge ${s.active && new Date(s.expiresAt)>new Date()?'badge-success':'badge-secondary'}`}>{s.active && new Date(s.expiresAt)>new Date()?'🟢 Active':'🔴 Expired'}</span></td></tr>
+              ))}</tbody>
+              </table>
+            </div>
           </div>
-          {showAddModal && (
-            <Modal isOpen={showAddModal} onClose={()=>setShowAddModal(false)} title="Add Timetable Entry" footer={<><button className="btn btn-secondary" onClick={()=>setShowAddModal(false)}>Cancel</button><button className="btn btn-primary" onClick={addEntry}><i className="fas fa-plus"></i> Add Entry</button></>}>
-              <div className="form-group"><label className="form-label">Day</label><select className="input" value={newEntry.day} onChange={e=>setNewEntry({...newEntry,day:e.target.value})}>{days.map(d=><option key={d}>{d}</option>)}</select></div>
-              <div className="form-group"><label className="form-label">Subject</label><select className="input" value={newEntry.subjectId} onChange={e=>setNewEntry({...newEntry,subjectId:e.target.value})}><option value="">Select Subject</option>{(API.getSubjects() || []).map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</select></div>
-              <div className="form-group"><label className="form-label">Teacher</label><select className="input" value={newEntry.teacherId} onChange={e=>setNewEntry({...newEntry,teacherId:e.target.value})}><option value="">Select Teacher</option>{(API.getTeachers() || []).map(t=><option key={t.id} value={t.id}>{t.name}</option>)}</select></div>
-              <div className="form-group"><label className="form-label">Time Slot</label><input className="input" placeholder="e.g. 09:00-10:30" value={newEntry.time} onChange={e=>setNewEntry({...newEntry,time:e.target.value})} /></div>
-              <div className="form-group"><label className="form-label">Room</label><input className="input" placeholder="e.g. L-301" value={newEntry.room} onChange={e=>setNewEntry({...newEntry,room:e.target.value})} /></div>
-              <div className="form-group"><label className="form-label">Type</label><select className="input" value={newEntry.type} onChange={e=>setNewEntry({...newEntry,type:e.target.value})}><option>LECTURE</option><option>LAB</option><option>TUTORIAL</option></select></div>
-            </Modal>
-          )}
         </div>
-      );
-    }
+      )}
 
+      {activeTab==='students' && (
+        <div>
+          <div className="grid-2">
+            <div className="card animate-fadeIn">
+              <div className="card-header"><h3 className="card-title"><i className="fas fa-user-plus"></i> Add New Student</h3></div>
+              <div className="form-group"><label className="form-label">Full Name *</label><input className="input" placeholder="Enter student full name" value={newStudent.name} onChange={e=>setNewStudent({...newStudent,name:e.target.value})} /></div>
+              <div className="form-group"><label className="form-label">Phone Number *</label><input className="input" placeholder="Enter phone number" value={newStudent.phone} onChange={e=>setNewStudent({...newStudent,phone:e.target.value})} /></div>
+              <div className="form-group"><label className="form-label">Email (optional)</label><input className="input" placeholder="Auto-generated if empty" value={newStudent.email} onChange={e=>setNewStudent({...newStudent,email:e.target.value})} /></div>
+              <div className="grid-2">
+                <div className="form-group"><label className="form-label">Gender</label><select className="input" value={newStudent.gender} onChange={e=>setNewStudent({...newStudent,gender:e.target.value})}><option>Male</option><option>Female</option><option>Other</option></select></div>
+                <div className="form-group"><label className="form-label">Class *</label><select className="input" value={newStudent.classId} onChange={e=>setNewStudent({...newStudent,classId:e.target.value})}>{(API.getClasses()||[]).map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select></div>
+              </div>
+              <div className="form-group"><label className="form-label">Department *</label><select className="input" value={newStudent.departmentId} onChange={e=>setNewStudent({...newStudent,departmentId:e.target.value})}>{(API.getDepartments()||[]).map(d=><option key={d.id} value={d.id}>{d.name}</option>)}</select></div>
+              <div className="form-group"><label className="form-label">Guardian Name</label><input className="input" placeholder="Parent/Guardian name" value={newStudent.guardian} onChange={e=>setNewStudent({...newStudent,guardian:e.target.value})} /></div>
+              <div className="form-group"><label className="form-label">Guardian Phone</label><input className="input" placeholder="Parent/Guardian phone" value={newStudent.guardianPhone} onChange={e=>setNewStudent({...newStudent,guardianPhone:e.target.value})} /></div>
+              <div className="form-group"><label className="form-label">Address</label><input className="input" placeholder="Student address" value={newStudent.address} onChange={e=>setNewStudent({...newStudent,address:e.target.value})} /></div>
+              <button className="btn btn-primary btn-block btn-lg" onClick={handleAddStudent}><i className="fas fa-plus"></i> Add Student & Generate Roll No</button>
+            </div>
+
+            <div className="card animate-fadeIn">
+              <div className="card-header"><h3 className="card-title"><i className="fas fa-id-card"></i> Result</h3></div>
+              {addResult ? (
+                <div style={{textAlign:'center',padding:'20px'}}>
+                  <div style={{width:'64px',height:'64px',borderRadius:'50%',background:'var(--success)',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 16px',fontSize:'28px',color:'white'}}><i className="fas fa-check"></i></div>
+                  <h3 style={{marginBottom:'8px'}}>Student Added Successfully!</h3>
+                  <div style={{background:'var(--bg-primary)',borderRadius:'12px',padding:'16px',textAlign:'left',marginTop:'16px',border:'1px solid var(--border-color)'}}>
+                    <div style={{marginBottom:'10px',display:'flex',justifyContent:'space-between'}}>
+                      <span style={{color:'var(--text-light)',fontSize:'12px',textTransform:'uppercase'}}>Name</span>
+                      <div style={{fontWeight:700}}>{addResult.student.name}</div>
+                    </div>
+                    <div style={{marginBottom:'10px',display:'flex',justifyContent:'space-between'}}>
+                      <span style={{color:'var(--text-light)',fontSize:'12px',textTransform:'uppercase'}}>Roll Number</span>
+                      <div style={{fontWeight:700,color:'var(--primary)',fontSize:'18px'}}>{addResult.student.rollNo}</div>
+                    </div>
+                    <div style={{marginBottom:'10px',display:'flex',justifyContent:'space-between'}}>
+                      <span style={{color:'var(--text-light)',fontSize:'12px',textTransform:'uppercase'}}>Email</span>
+                      <div style={{fontWeight:700}}>{addResult.user.email}</div>
+                    </div>
+                    <div style={{display:'flex',justifyContent:'space-between'}}>
+                      <span style={{color:'var(--text-light)',fontSize:'12px',textTransform:'uppercase'}}>Password</span>
+                      <div style={{fontWeight:700,color:'var(--warning)'}}>password</div>
+                    </div>
+                  </div>
+                  <p style={{fontSize:'13px',color:'var(--text-light)',marginTop:'12px'}}><i className="fas fa-info-circle"></i> Student can login with email and password: <strong>password</strong></p>
+                </div>
+              ) : (
+                <div style={{textAlign:'center',padding:'40px 20px'}}>
+                  <i className="fas fa-user-graduate" style={{fontSize:'48px',color:'var(--text-light)',marginBottom:'16px',opacity:0.5}}></i>
+                  <h4 style={{fontWeight:700,marginBottom:'6px'}}>No Student Added Yet</h4>
+                  <p style={{color:'var(--text-secondary)',fontSize:'14px'}}>Fill the form and click "Add Student" to generate roll number automatically.</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
     // ===================== CURRICULUM =====================
     function CurriculumPage({ role, viewAs }) {
       const [selectedSubject, setSelectedSubject] = useState('sub1');
