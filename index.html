@@ -668,7 +668,46 @@
       getSettings() { return DB.settings; },
       updateSettings(data) { DB.settings = {...DB.settings, ...data}; return DB.settings; },
       getDemoStudent() { return DB.students[0] || null; },
-      getDemoTeacher() { return DB.teachers[0] || null; }
+      getDemoTeacher() { return DB.teachers[0] || null; },
+      getActiveQRSessions(classId) {
+        const now = new Date();
+        return DB.qrSessions.filter(s => s.active && new Date(s.expiresAt) > now && (!classId || s.classId === classId));
+      },
+      addStudent(data) {
+        // Auto-generate roll number based on department code and year
+        const dept = DB.departments.find(d => d.id === data.departmentId);
+        const deptCode = dept ? dept.code : 'CSE';
+        const year = new Date().getFullYear();
+        // Find next available roll number
+        const existingRolls = DB.students.map(s => s.rollNo).filter(r => r && r.startsWith(deptCode + year.toString().slice(-2)));
+        let maxNum = 0;
+        existingRolls.forEach(r => {
+          const num = parseInt(r.slice(-3));
+          if (!isNaN(num) && num > maxNum) maxNum = num;
+        });
+        const nextNum = (maxNum + 1).toString().padStart(3, '0');
+        const rollNo = deptCode + year.toString().slice(-2) + nextNum;
+
+        // Create user account
+        const userId = 'u-' + Date.now();
+        const email = data.email || rollNo.toLowerCase() + '@student.edu';
+        DB.users.push({
+          id: userId, name: data.name, email: email, role: 'STUDENT',
+          password: 'password', avatar: null, phone: data.phone || '', joined: new Date().toISOString().split('T')[0]
+        });
+
+        // Create student record
+        const studentId = 's-' + Date.now();
+        const newStudent = {
+          id: studentId, userId: userId, name: data.name, rollNo: rollNo,
+          classId: data.classId, department: data.departmentId, semester: data.semester || 1,
+          attendance: 0, curriculumProgress: 0, quizAverage: 0, cgpa: 0, backlogs: 0,
+          gender: data.gender || 'Male', dob: data.dob || '', address: data.address || '',
+          guardian: data.guardian || '', guardianPhone: data.guardianPhone || ''
+        };
+        DB.students.push(newStudent);
+        return { success: true, student: newStudent, user: DB.users[DB.users.length - 1] };
+      }
     };
 
     // ===================== TOAST & NOTIFICATIONS =====================
@@ -1176,39 +1215,91 @@
       const [scanResult, setScanResult] = useState(null);
       const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
       const [selectedClass, setSelectedClass] = useState('cls1');
+      const [selectedSubject, setSelectedSubject] = useState('sub1');
+      const [showAddStudent, setShowAddStudent] = useState(false);
+      const [showScanConfirm, setShowScanConfirm] = useState(false);
+      const [activeSessions, setActiveSessions] = useState([]);
+      const [newStudent, setNewStudent] = useState({name:'',phone:'',email:'',gender:'Male',classId:'cls1',departmentId:'d1',guardian:'',guardianPhone:'',address:''});
+      const [addResult, setAddResult] = useState(null);
+
       const student = API.getStudentByUserId(user.id) || (effectiveRole==='STUDENT' && role!=='STUDENT' ? API.getDemoStudent() : null);
       const teacher = API.getTeacherByUserId(user.id);
+      const isTeacherOrAdmin = effectiveRole === 'TEACHER' || effectiveRole === 'ADMIN';
 
+      // Poll for active QR sessions (for students)
+      useEffect(() => {
+        if (effectiveRole !== 'STUDENT') return;
+        const poll = () => {
+          const sessions = API.getActiveQRSessions(student?.classId);
+          setActiveSessions(sessions || []);
+        };
+        poll();
+        const interval = setInterval(poll, 3000);
+        return () => clearInterval(interval);
+      }, [effectiveRole, student]);
+
+      // Teacher QR timer
       const timerRef = useRef(null);
       useEffect(() => {
         if (qrActive && timer > 0) {
-          timerRef.current = setInterval(() => setTimer(t => { if (t <= 1) { clearInterval(timerRef.current); setQrActive(false); showToast('QR session expired','warning'); return 0; } return t - 1; }), 1000);
+          timerRef.current = setInterval(() => setTimer(t => { if (t <= 1) { clearInterval(timerRef.current); setQrActive(false); setQrSession(null); showToast('QR session expired','warning'); return 0; } return t - 1; }), 1000);
         }
         return () => { if (timerRef.current) clearInterval(timerRef.current); };
       }, [qrActive]);
 
       const startQR = () => {
-        const session = API.createQRSession(teacher?.id||'t1', selectedClass, 'sub1');
+        if (!selectedClass || !selectedSubject) { showToast('Please select class and subject','error'); return; }
+        const session = API.createQRSession(teacher?.id||'t1', selectedClass, selectedSubject);
         setQrSession(session); setQrActive(true); setTimer(120); setScanResult(null);
         showToast('QR Session started! Students can now scan.','success');
       };
 
-      const scanQR = () => {
-        if (!qrSession || !student) { showToast('No active QR session','error'); return; }
+      const openScanConfirm = (session) => {
+        if (!student) { showToast('Student profile not found','error'); return; }
+        setQrSession(session);
+        setShowScanConfirm(true);
+        setScanResult(null);
+      };
+
+      const confirmScan = () => {
+        if (!qrSession || !student) { showToast('Invalid session','error'); return; }
         const result = API.scanQR(qrSession.id, student.id);
-        if (result.success) { setScanResult({status:'success',message:'Attendance recorded successfully!'}); showToast('Attendance recorded!','success'); }
-        else { setScanResult({status:'error',message:result.error}); showToast(result.error,'error'); }
-        setTimeout(()=>setScanResult(null),4000);
+        setShowScanConfirm(false);
+        if (result.success) {
+          setScanResult({status:'success',message:`Attendance recorded! Welcome, ${student.name}.`});
+          showToast(`Attendance recorded for ${student.name}!`,'success');
+        } else {
+          setScanResult({status:'error',message:result.error});
+          showToast(result.error,'error');
+        }
+        setTimeout(()=>setScanResult(null),6000);
       };
 
       const handleBulkAttendance = (studentId, status) => {
-        API.markAttendance(studentId, 'sub1', selectedDate, status, teacher?.id||'t1');
+        if (!selectedSubject) { showToast('Please select a subject','error'); return; }
+        API.markAttendance(studentId, selectedSubject, selectedDate, status, teacher?.id||'t1');
         showToast(`Attendance marked: ${status}`,'success');
+      };
+
+      const handleAddStudent = () => {
+        if (!newStudent.name.trim()) { showToast('Student name is required','error'); return; }
+        if (!newStudent.phone.trim()) { showToast('Phone number is required','error'); return; }
+        if (newStudent.phone.length < 10) { showToast('Phone number must be at least 10 digits','error'); return; }
+        const result = API.addStudent(newStudent);
+        if (result.success) {
+          setAddResult(result);
+          showToast(`Student added! Roll No: ${result.student.rollNo}`,'success');
+          setNewStudent({name:'',phone:'',email:'',gender:'Male',classId:'cls1',departmentId:'d1',guardian:'',guardianPhone:'',address:''});
+          setTimeout(()=>setAddResult(null),5000);
+        } else {
+          showToast('Failed to add student','error');
+        }
       };
 
       const attendanceRecords = student ? API.getAttendance(student.id) : [];
       const stats = student ? (API.getAttendanceStats(student.id) || {}) : {};
 
+      // STUDENT VIEW
       if (effectiveRole==='STUDENT') return (
         <div>
           <div className="stats-grid">
@@ -1219,24 +1310,41 @@
           </div>
           <div className="grid-2">
             <div className="card animate-fadeIn stagger-2">
-              <div className="card-header"><h3 className="card-title"><i className="fas fa-qrcode"></i> Quick Scan</h3></div>
-              <div className="qr-container">
-                {qrSession ? (
-                  <>
-                    <div className="qr-placeholder animate-pulse-glow"><i className="fas fa-qrcode"></i></div>
-                    <div className="qr-timer">{Math.floor(timer/60)}:{(timer%60).toString().padStart(2,'0')}</div>
-                    <button className="btn btn-primary btn-block btn-lg" onClick={scanQR} disabled={!qrActive}>
-                      <i className="fas fa-camera"></i> Scan & Mark
-                    </button>
-                    {scanResult && <p style={{color:scanResult.status==='success'?'var(--success)':'var(--danger)',fontWeight:700,marginTop:'12px'}}><i className={`fas fa-${scanResult.status==='success'?'check-circle':'exclamation-circle'}`}></i> {scanResult.message}</p>}
-                  </>
-                ) : (
-                  <div style={{textAlign:'center',padding:'20px'}}>
-                    <i className="fas fa-qrcode" style={{fontSize:'56px',color:'var(--text-light)',marginBottom:'16px'}}></i>
-                    <p style={{color:'var(--text-secondary)'}}>No active QR session. Ask your teacher to start one.</p>
-                  </div>
-                )}
-              </div>
+              <div className="card-header"><h3 className="card-title"><i className="fas fa-qrcode"></i> Scan QR Attendance</h3></div>
+              {activeSessions.length > 0 ? (
+                <div>
+                  <p style={{color:'var(--text-secondary)',marginBottom:'16px',fontSize:'14px'}}><i className="fas fa-info-circle"></i> {activeSessions.length} active QR session(s) found for your class.</p>
+                  {activeSessions.map((session, idx) => {
+                    const sub = API.getSubjectById(session.subjectId);
+                    const cls = API.getClassById(session.classId);
+                    const timeLeft = Math.max(0, Math.floor((new Date(session.expiresAt) - new Date()) / 1000));
+                    return (
+                      <div key={idx} style={{padding:'16px',background:'var(--bg-primary)',borderRadius:'12px',marginBottom:'12px',border:'1.5px solid var(--border-color)'}}>
+                        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'8px'}}>
+                          <span style={{fontWeight:700,fontSize:'15px'}}><i className="fas fa-book" style={{color:'var(--primary)'}}></i> {sub?.name || 'Subject'}</span>
+                          <span className="badge badge-success"><i className="fas fa-circle" style={{fontSize:'8px'}}></i> Active</span>
+                        </div>
+                        <div style={{fontSize:'13px',color:'var(--text-secondary)',marginBottom:'12px'}}>Class: {cls?.name} · Expires in {Math.floor(timeLeft/60)}:{(timeLeft%60).toString().padStart(2,'0')}</div>
+                        <button className="btn btn-primary btn-block" onClick={()=>openScanConfirm(session)}>
+                          <i className="fas fa-camera"></i> Scan & Confirm Attendance
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div style={{textAlign:'center',padding:'32px 20px'}}>
+                  <div className="qr-placeholder" style={{width:'120px',height:'120px',margin:'0 auto 16px',opacity:0.3}}><i className="fas fa-qrcode" style={{fontSize:'48px'}}></i></div>
+                  <p style={{color:'var(--text-secondary)',fontSize:'15px'}}>No active QR sessions found.</p>
+                  <p style={{color:'var(--text-light)',fontSize:'13px',marginTop:'4px'}}>Your teacher hasn't started a QR attendance session yet.</p>
+                </div>
+              )}
+              {scanResult && (
+                <div style={{marginTop:'16px',padding:'14px 18px',borderRadius:'12px',background:scanResult.status==='success'?'#d1fae5':'#fee2e2',border:`1.5px solid ${scanResult.status==='success'?'#10b981':'#ef4444'}`,display:'flex',alignItems:'center',gap:'10px'}}>
+                  <i className={`fas fa-${scanResult.status==='success'?'check-circle':'exclamation-circle'}`} style={{fontSize:'20px',color:scanResult.status==='success'?'#065f46':'#991b1b'}}></i>
+                  <span style={{fontWeight:700,color:scanResult.status==='success'?'#065f46':'#991b1b'}}>{scanResult.message}</span>
+                </div>
+              )}
             </div>
             <div className="card animate-fadeIn stagger-3">
               <div className="card-header"><h3 className="card-title"><i className="fas fa-history"></i> Recent Records</h3></div>
@@ -1250,43 +1358,70 @@
               </div>
             </div>
           </div>
+
+          {showScanConfirm && (
+            <Modal isOpen={showScanConfirm} onClose={()=>setShowScanConfirm(false)} title="Confirm Attendance" footer={
+              <><button className="btn btn-secondary" onClick={()=>setShowScanConfirm(false)}>Cancel</button>
+              <button className="btn btn-success" onClick={confirmScan}><i className="fas fa-check"></i> Confirm & Mark Present</button></>
+            }>
+              <div style={{textAlign:'center',padding:'20px'}}>
+                <div style={{width:'80px',height:'80px',borderRadius:'50%',background:'var(--primary-gradient)',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 16px',fontSize:'32px',color:'white'}}><i className="fas fa-user-check"></i></div>
+                <h3 style={{marginBottom:'8px'}}>Verify Your Identity</h3>
+                <p style={{color:'var(--text-secondary)',marginBottom:'20px'}}>Please confirm your details before marking attendance.</p>
+                <div style={{background:'var(--bg-primary)',borderRadius:'12px',padding:'16px',textAlign:'left',marginBottom:'16px'}}>
+                  <div style={{marginBottom:'10px'}}><span style={{color:'var(--text-light)',fontSize:'12px',textTransform:'uppercase',letterSpacing:'0.5px'}}>Name</span><div style={{fontWeight:700}}>{student?.name}</div></div>
+                  <div style={{marginBottom:'10px'}}><span style={{color:'var(--text-light)',fontSize:'12px',textTransform:'uppercase',letterSpacing:'0.5px'}}>Roll Number</span><div style={{fontWeight:700}}>{student?.rollNo}</div></div>
+                  <div style={{marginBottom:'10px'}}><span style={{color:'var(--text-light)',fontSize:'12px',textTransform:'uppercase',letterSpacing:'0.5px'}}>Email</span><div style={{fontWeight:700}}>{user?.email}</div></div>
+                  <div><span style={{color:'var(--text-light)',fontSize:'12px',textTransform:'uppercase',letterSpacing:'0.5px'}}>Class</span><div style={{fontWeight:700}}>{API.getClassById(student?.classId)?.name}</div></div>
+                </div>
+                <p style={{fontSize:'13px',color:'var(--text-light)'}}><i className="fas fa-shield-alt"></i> Your attendance will be recorded with timestamp verification.</p>
+              </div>
+            </Modal>
+          )}
         </div>
       );
 
+      // TEACHER / ADMIN VIEW
       return (
         <div>
           <div className="tabs">
             <button className={`tab ${activeTab==='overview'?'active':''}`} onClick={()=>setActiveTab('overview')}>Overview</button>
             <button className={`tab ${activeTab==='mark'?'active':''}`} onClick={()=>setActiveTab('mark')}>Mark Attendance</button>
             <button className={`tab ${activeTab==='qr'?'active':''}`} onClick={()=>setActiveTab('qr')}>QR Manager</button>
+            <button className={`tab ${activeTab==='students'?'active':''}`} onClick={()=>setActiveTab('students')}>Add Students</button>
           </div>
+
           {activeTab==='overview' && (
             <div className="card animate-fadeIn">
               <div className="card-header"><h3 className="card-title">Attendance Overview</h3></div>
               <div className="table-container">
                 <table><thead><tr><th>Student</th><th>Roll No</th><th>Overall %</th><th>Present</th><th>Absent</th><th>Status</th></tr></thead>
-                <tbody>{API.getStudents().map(s=>{ const st=API.getAttendanceStats(s.id); return (
+                <tbody>{(API.getStudents() || []).map(s=>{ const st=API.getAttendanceStats(s.id); return (
                   <tr key={s.id}><td className="td-name"><div className="td-avatar">{s.name.charAt(0)}</div><div className="td-info"><span className="name">{s.name}</span><span className="sub">{API.getClassById(s.classId)?.name}</span></div></td>
-                  <td>{s.rollNo}</td><td><div className="progress-bar" style={{width:'80px'}}><div className={`fill ${st.percentage>80?'success':st.percentage>70?'warning':'danger'}`} style={{width:`${st.percentage}%`}}></div></div> {st.percentage}%</td>
-                  <td>{st.present}</td><td>{st.absent}</td>
-                  <td><span className={`badge ${st.percentage>=75?'badge-success':'badge-danger'}`}>{st.percentage>=75?'Good':'At Risk'}</span></td></tr>
+                  <td>{s.rollNo}</td><td><div className="progress-bar" style={{width:'80px',display:'inline-block',marginRight:'8px',verticalAlign:'middle'}}><div className={`fill ${(st.percentage||0)>80?'success':(st.percentage||0)>70?'warning':'danger'}`} style={{width:`${st.percentage||0}%`}}></div></div> {st.percentage||0}%</td>
+                  <td>{st.present||0}</td><td>{st.absent||0}</td>
+                  <td><span className={`badge ${(st.percentage||0)>=75?'badge-success':'badge-danger'}`}>{(st.percentage||0)>=75?'Good':'At Risk'}</span></td></tr>
                 );})}</tbody>
                 </table>
               </div>
             </div>
           )}
+
           {activeTab==='mark' && (
             <div className="card animate-fadeIn">
               <div className="card-header"><h3 className="card-title">Mark Attendance - {new Date(selectedDate).toDateString()}</h3></div>
-              <div style={{marginBottom:'20px',display:'flex',gap:'12px'}}>
+              <div style={{marginBottom:'20px',display:'flex',gap:'12px',flexWrap:'wrap'}}>
                 <input type="date" className="input" style={{width:'auto'}} value={selectedDate} onChange={e=>setSelectedDate(e.target.value)} />
                 <select className="input" style={{width:'auto'}} value={selectedClass} onChange={e=>setSelectedClass(e.target.value)}>
                   {(API.getClasses() || []).map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
+                <select className="input" style={{width:'auto'}} value={selectedSubject} onChange={e=>setSelectedSubject(e.target.value)}>
+                  {(API.getSubjects() || []).map(s=><option key={s.id} value={s.id}>{s.name}</option>)}
+                </select>
               </div>
               <div className="table-container">
                 <table><thead><tr><th>Student</th><th>Roll No</th><th>Mark Status</th></tr></thead>
-                <tbody>{API.getStudents().filter(s=>s.classId===selectedClass).map(s=> {
+                <tbody>{(API.getStudents() || []).filter(s=>s.classId===selectedClass).map(s=> {
                   const todayRec = API.getAttendance(s.id,null,selectedDate);
                   const currentStatus = todayRec.length>0 ? todayRec[0].status : null;
                   return (
@@ -1303,28 +1438,96 @@
               </div>
             </div>
           )}
+
           {activeTab==='qr' && (
-            <div className="card animate-fadeIn" style={{textAlign:'center',padding:'40px'}}>
-              <div className="card-header" style={{justifyContent:'center'}}><h3 className="card-title"><i className="fas fa-qrcode"></i> QR Attendance Session</h3></div>
-              <p style={{color:'var(--text-secondary)',marginBottom:'24px'}}>Start a QR session for students to scan and mark their attendance automatically.</p>
-              <button className="btn btn-primary btn-lg" onClick={startQR} disabled={qrActive} style={{minWidth:'200px'}}>
-                {qrActive?<><i className="fas fa-circle-notch fa-spin"></i> Active...</>:<><i className="fas fa-play"></i> Start QR Session</>}
-              </button>
-              {qrActive && (
-                <div style={{marginTop:'32px'}}>
-                  <div className="qr-placeholder animate-pulse-glow" style={{margin:'0 auto'}}><i className="fas fa-qrcode"></i></div>
-                  <div className="qr-timer">{Math.floor(timer/60)}:{(timer%60).toString().padStart(2,'0')}</div>
-                  <p style={{color:'var(--text-secondary)'}}>Students can scan this code to mark attendance</p>
+            <div>
+              <div className="card animate-fadeIn" style={{textAlign:'center',padding:'40px',marginBottom:'24px'}}>
+                <div className="card-header" style={{justifyContent:'center'}}><h3 className="card-title"><i className="fas fa-qrcode"></i> QR Attendance Session</h3></div>
+                <div style={{display:'flex',gap:'12px',justifyContent:'center',marginBottom:'24px',flexWrap:'wrap'}}>
+                  <select className="input" style={{width:'auto',minWidth:'160px'}} value={selectedClass} onChange={e=>setSelectedClass(e.target.value)}>
+                    {(API.getClasses() || []).map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
+                  </select>
+                  <select className="input" style={{width:'auto',minWidth:'200px'}} value={selectedSubject} onChange={e=>setSelectedSubject(e.target.value)}>
+                    {(API.getSubjects() || []).map(s=><option key={s.id} value={s.id}>{s.name}</option>)}
+                  </select>
                 </div>
-              )}
+                <button className="btn btn-primary btn-lg" onClick={startQR} disabled={qrActive} style={{minWidth:'220px'}}>
+                  {qrActive?<><i className="fas fa-circle-notch fa-spin"></i> Session Active...</>:<><i className="fas fa-play"></i> Start QR Session</>}
+                </button>
+                {qrActive && (
+                  <div style={{marginTop:'32px'}}>
+                    <div className="qr-placeholder animate-pulse-glow" style={{margin:'0 auto'}}><i className="fas fa-qrcode"></i></div>
+                    <div className="qr-timer">{Math.floor(timer/60)}:{(timer%60).toString().padStart(2,'0')}</div>
+                    <p style={{color:'var(--text-secondary)'}}>Students can now scan this code to mark attendance for {API.getSubjectById(selectedSubject)?.name}</p>
+                    <div style={{marginTop:'16px',display:'flex',gap:'8px',justifyContent:'center'}}>
+                      <span className="badge badge-success"><i className="fas fa-wifi"></i> Broadcasting</span>
+                      <span className="badge badge-info"><i className="fas fa-users"></i> Class: {API.getClassById(selectedClass)?.name}</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+              <div className="card animate-fadeIn">
+                <div className="card-header"><h3 className="card-title"><i className="fas fa-history"></i> Recent QR Sessions</h3></div>
+                <div className="table-container">
+                  <table><thead><tr><th>Session ID</th><th>Class</th><th>Subject</th><th>Started</th><th>Status</th></tr></thead>
+                  <tbody>{(DB.qrSessions || []).slice(-5).reverse().map((s,i)=> (
+                    <tr key={i}><td>{s.id.slice(-6)}</td><td>{API.getClassById(s.classId)?.name}</td><td>{API.getSubjectById(s.subjectId)?.name}</td>
+                    <td>{new Date(s.createdAt).toLocaleTimeString()}</td>
+                    <td><span className={`badge ${s.active && new Date(s.expiresAt)>new Date()?'badge-success':'badge-secondary'}`}>{s.active && new Date(s.expiresAt)>new Date()?'Active':'Expired'}</span></td></tr>
+                  ))}</tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab==='students' && (
+            <div>
+              <div className="grid-2">
+                <div className="card animate-fadeIn">
+                  <div className="card-header"><h3 className="card-title"><i className="fas fa-user-plus"></i> Add New Student</h3></div>
+                  <div className="form-group"><label className="form-label">Full Name *</label><input className="input" placeholder="Enter student full name" value={newStudent.name} onChange={e=>setNewStudent({...newStudent,name:e.target.value})} /></div>
+                  <div className="form-group"><label className="form-label">Phone Number *</label><input className="input" placeholder="Enter phone number" value={newStudent.phone} onChange={e=>setNewStudent({...newStudent,phone:e.target.value})} /></div>
+                  <div className="form-group"><label className="form-label">Email (optional)</label><input className="input" placeholder="Auto-generated if empty" value={newStudent.email} onChange={e=>setNewStudent({...newStudent,email:e.target.value})} /></div>
+                  <div className="grid-2">
+                    <div className="form-group"><label className="form-label">Gender</label><select className="input" value={newStudent.gender} onChange={e=>setNewStudent({...newStudent,gender:e.target.value})}><option>Male</option><option>Female</option><option>Other</option></select></div>
+                    <div className="form-group"><label className="form-label">Class *</label><select className="input" value={newStudent.classId} onChange={e=>setNewStudent({...newStudent,classId:e.target.value})}>{(API.getClasses()||[]).map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select></div>
+                  </div>
+                  <div className="form-group"><label className="form-label">Department *</label><select className="input" value={newStudent.departmentId} onChange={e=>setNewStudent({...newStudent,departmentId:e.target.value})}>{(API.getDepartments()||[]).map(d=><option key={d.id} value={d.id}>{d.name}</option>)}</select></div>
+                  <div className="form-group"><label className="form-label">Guardian Name</label><input className="input" placeholder="Parent/Guardian name" value={newStudent.guardian} onChange={e=>setNewStudent({...newStudent,guardian:e.target.value})} /></div>
+                  <div className="form-group"><label className="form-label">Guardian Phone</label><input className="input" placeholder="Parent/Guardian phone" value={newStudent.guardianPhone} onChange={e=>setNewStudent({...newStudent,guardianPhone:e.target.value})} /></div>
+                  <div className="form-group"><label className="form-label">Address</label><input className="input" placeholder="Student address" value={newStudent.address} onChange={e=>setNewStudent({...newStudent,address:e.target.value})} /></div>
+                  <button className="btn btn-primary btn-block btn-lg" onClick={handleAddStudent}><i className="fas fa-plus"></i> Add Student & Generate Roll No</button>
+                </div>
+
+                <div className="card animate-fadeIn">
+                  <div className="card-header"><h3 className="card-title"><i className="fas fa-id-card"></i> Result</h3></div>
+                  {addResult ? (
+                    <div style={{textAlign:'center',padding:'20px'}}>
+                      <div style={{width:'64px',height:'64px',borderRadius:'50%',background:'var(--success)',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 16px',fontSize:'28px',color:'white'}}><i className="fas fa-check"></i></div>
+                      <h3 style={{marginBottom:'8px'}}>Student Added Successfully!</h3>
+                      <div style={{background:'var(--bg-primary)',borderRadius:'12px',padding:'16px',textAlign:'left',marginTop:'16px'}}>
+                        <div style={{marginBottom:'10px'}}><span style={{color:'var(--text-light)',fontSize:'12px',textTransform:'uppercase'}}>Name</span><div style={{fontWeight:700}}>{addResult.student.name}</div></div>
+                        <div style={{marginBottom:'10px'}}><span style={{color:'var(--text-light)',fontSize:'12px',textTransform:'uppercase'}}>Roll Number</span><div style={{fontWeight:700,color:'var(--primary)',fontSize:'18px'}}>{addResult.student.rollNo}</div></div>
+                        <div style={{marginBottom:'10px'}}><span style={{color:'var(--text-light)',fontSize:'12px',textTransform:'uppercase'}}>Email</span><div style={{fontWeight:700}}>{addResult.user.email}</div></div>
+                        <div><span style={{color:'var(--text-light)',fontSize:'12px',textTransform:'uppercase'}}>Password</span><div style={{fontWeight:700}}>password</div></div>
+                      </div>
+                      <p style={{fontSize:'13px',color:'var(--text-light)',marginTop:'12px'}}><i className="fas fa-info-circle"></i> Student can login with email and password: <strong>password</strong></p>
+                    </div>
+                  ) : (
+                    <div style={{textAlign:'center',padding:'40px 20px'}}>
+                      <i className="fas fa-user-graduate" style={{fontSize:'48px',color:'var(--text-light)',marginBottom:'16px',opacity:0.5}}></i>
+                      <h4 style={{fontWeight:700,marginBottom:'6px'}}>No Student Added Yet</h4>
+                      <p style={{color:'var(--text-secondary)',fontSize:'14px'}}>Fill the form and click "Add Student" to generate roll number automatically.</p>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           )}
         </div>
       );
-    }
-
-    // ===================== TIMETABLE =====================
-    function TimetablePage({ user, role, viewAs }) {
+    }function TimetablePage({ user, role, viewAs }) {
       const effectiveRole = viewAs || role;
       const [selectedClass, setSelectedClass] = useState('cls1');
       const [selectedDay, setSelectedDay] = useState('Monday');
@@ -1957,9 +2160,9 @@
       }, [chartType]);
 
       const students = API.getStudents();
-      const avgAttendance = Math.round(students.reduce((s,a)=>s+(a.attendance||0),0)/students.length);
-      const avgQuiz = Math.round(students.reduce((s,a)=>s+(a.quizAverage||0),0)/students.length);
-      const avgCgpa = (students.reduce((s,a)=>s+(a.cgpa||0),0)/students.length).toFixed(2);
+      const avgAttendance = students.length>0?Math.round(students.reduce((s,a)=>s+(a.attendance||0),0)/students.length):0;
+      const avgQuiz = students.length>0?Math.round(students.reduce((s,a)=>s+(a.quizAverage||0),0)/students.length):0;
+      const avgCgpa = students.length>0?(students.reduce((s,a)=>s+(a.cgpa||0),0)/students.length).toFixed(2):'0.00';
 
       return (
         <div>
