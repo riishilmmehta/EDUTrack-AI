@@ -8,6 +8,8 @@
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <!-- QRCode.js for real QR code generation -->
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <style>
@@ -332,7 +334,6 @@
     }
     @media (max-width:480px) { .stats-grid { grid-template-columns:1fr; } .topbar { padding:0 16px; } .page-content { padding:16px; } }
   </style>
-<base target="_blank">
 </head>
 <body>
   <div id="root"></div>
@@ -493,6 +494,7 @@
         { id:'tt10', classId:'cls1', day:'Friday', subjectId:'sub2', teacherId:'t2', time:'09:00-10:30', room:'L-302', type:'LECTURE' },
         { id:'tt11', classId:'cls1', day:'Friday', subjectId:'sub3', teacherId:'t1', time:'10:45-12:15', room:'L-301', type:'LECTURE' }
       ];
+      const baseTime = now.getTime();
       DB.interventions = [
         { id:'int1', studentId:'s1', studentName:'Aarav Shah', teacherId:'t1', reason:'Low SQL JOIN performance (48%) and attendance below threshold', suggestedAction:'Assign SQL JOIN practice + revision', actionTaken:'Assigned SQL JOIN practice quiz', status:'IN_PROGRESS', assignedAt:'2026-08-12', beforeScore:48, afterScore:null, evidence:'Quiz score: 48%, Attendance: 68%', createdAt:new Date(baseTime - 5*86400000).toISOString() },
         { id:'int2', studentId:'s5', studentName:'Aditya Joshi', teacherId:'t1', reason:'Multiple backlogs and low attendance (73%)', suggestedAction:'Academic counseling + attendance improvement plan', actionTaken:'Counseling session scheduled', status:'PENDING', assignedAt:'2026-08-18', beforeScore:62, afterScore:null, evidence:'2 backlogs, Attendance: 73%', createdAt:new Date(baseTime - 2*86400000).toISOString() }
@@ -508,7 +510,6 @@
         { id:'ev3', title:'Mid-Term Exams Begin', date:'2026-09-01', type:'EXAM', description:'Semester mid-term examinations' },
         { id:'ev4', title:'Project Submission', date:'2026-08-28', type:'DEADLINE', description:'Final project submission for DBMS' }
       ];
-      const baseTime = now.getTime();
       DB.notifications = [
         { id:'n1', userId:'u3', title:'Quiz Published', message:'SQL Joins Mastery Quiz is now available. Duration: 20 mins', type:'ASSESSMENT', read:false, link:'#quiz', createdAt:new Date(baseTime - 2*3600000).toISOString() },
         { id:'n2', userId:'u3', title:'Attendance Alert', message:'Your attendance is at 68%, below the required 75%', type:'ATTENDANCE', read:false, link:'#attendance', createdAt:new Date(baseTime - 4*3600000).toISOString() },
@@ -674,11 +675,9 @@
         return DB.qrSessions.filter(s => s.active && new Date(s.expiresAt) > now && (!classId || s.classId === classId));
       },
       addStudent(data) {
-        // Auto-generate roll number based on department code and year
         const dept = DB.departments.find(d => d.id === data.departmentId);
         const deptCode = dept ? dept.code : 'CSE';
         const year = new Date().getFullYear();
-        // Find next available roll number
         const existingRolls = DB.students.map(s => s.rollNo).filter(r => r && r.startsWith(deptCode + year.toString().slice(-2)));
         let maxNum = 0;
         existingRolls.forEach(r => {
@@ -688,7 +687,6 @@
         const nextNum = (maxNum + 1).toString().padStart(3, '0');
         const rollNo = deptCode + year.toString().slice(-2) + nextNum;
 
-        // Create user account
         const userId = 'u-' + Date.now();
         const email = data.email || rollNo.toLowerCase() + '@student.edu';
         DB.users.push({
@@ -696,7 +694,6 @@
           password: 'password', avatar: null, phone: data.phone || '', joined: new Date().toISOString().split('T')[0]
         });
 
-        // Create student record
         const studentId = 's-' + Date.now();
         const newStudent = {
           id: studentId, userId: userId, name: data.name, rollNo: rollNo,
@@ -878,7 +875,7 @@
     function App() {
       const [user, setUser] = useState(null);
       const [role, setRole] = useState(null);
-      const [viewAs, setViewAs] = useState(null); // For admin/teacher to switch views
+      const [viewAs, setViewAs] = useState(null);
       const [currentPage, setCurrentPage] = useState('dashboard');
       const [sidebarOpen, setSidebarOpen] = useState(false);
       const [theme, setTheme] = useState('light');
@@ -902,7 +899,6 @@
       const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
       const navigateTo = (page) => { setCurrentPage(page); setSidebarOpen(false); window.scrollTo(0,0); };
 
-      // Navigation structure with role-based access
       const navStructure = {
         STUDENT: [
           { section:'Main', items:[ {id:'dashboard',label:'Dashboard',icon:'fa-home'}, {id:'attendance',label:'Attendance',icon:'fa-calendar-check'}, {id:'timetable',label:'Timetable',icon:'fa-clock'}, {id:'curriculum',label:'Curriculum',icon:'fa-book-open'}, {id:'assignments',label:'Assignments',icon:'fa-tasks'}, {id:'quiz',label:'Quizzes',icon:'fa-pencil-alt'} ] },
@@ -1048,7 +1044,6 @@
           setStats({ totalStudents:all.length, totalTeachers:DB.teachers.length, totalSubjects:DB.subjects.length, totalClasses:DB.classes.length, totalDepartments:DB.departments.length });
           setAnnouncements(API.getAnnouncements().slice(0,3));
         }
-        // Recent activity
         const acts = [];
         if (effectiveRole==='STUDENT') {
           const s = API.getStudentByUserId(user.id);
@@ -1205,7 +1200,7 @@
       );
     }
 
-    // ===================== ATTENDANCE =====================
+    // ===================== ATTENDANCE (with Real QR) =====================
     function AttendancePage({ user, role, viewAs }) {
       const effectiveRole = viewAs || role;
       const [activeTab, setActiveTab] = useState('overview');
@@ -1216,15 +1211,16 @@
       const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
       const [selectedClass, setSelectedClass] = useState('cls1');
       const [selectedSubject, setSelectedSubject] = useState('sub1');
-      const [showAddStudent, setShowAddStudent] = useState(false);
       const [showScanConfirm, setShowScanConfirm] = useState(false);
       const [activeSessions, setActiveSessions] = useState([]);
-      const [newStudent, setNewStudent] = useState({name:'',phone:'',email:'',gender:'Male',classId:'cls1',departmentId:'d1',guardian:'',guardianPhone:'',address:''});
+      const [newStudent, setNewStudent] = useState({name:'', phone:'', email:'', gender:'Male', classId:'cls1', departmentId:'d1', guardian:'', guardianPhone:'', address:''});
       const [addResult, setAddResult] = useState(null);
+      const [scanningSessionId, setScanningSessionId] = useState(null);
+      const [qrGenerated, setQrGenerated] = useState(false);
 
       const student = API.getStudentByUserId(user.id) || (effectiveRole==='STUDENT' && role!=='STUDENT' ? API.getDemoStudent() : null);
       const teacher = API.getTeacherByUserId(user.id);
-      const isTeacherOrAdmin = effectiveRole === 'TEACHER' || effectiveRole === 'ADMIN';
+      const qrContainerRef = useRef(null);
 
       // Poll for active QR sessions (for students)
       useEffect(() => {
@@ -1242,37 +1238,141 @@
       const timerRef = useRef(null);
       useEffect(() => {
         if (qrActive && timer > 0) {
-          timerRef.current = setInterval(() => setTimer(t => { if (t <= 1) { clearInterval(timerRef.current); setQrActive(false); setQrSession(null); showToast('QR session expired','warning'); return 0; } return t - 1; }), 1000);
+          timerRef.current = setInterval(() => setTimer(t => { 
+            if (t <= 1) { 
+              clearInterval(timerRef.current); 
+              setQrActive(false); 
+              setQrSession(null); 
+              setQrGenerated(false);
+              showToast('QR session expired','warning'); 
+              return 0; 
+            } 
+            return t - 1; 
+          }), 1000);
         }
         return () => { if (timerRef.current) clearInterval(timerRef.current); };
       }, [qrActive]);
 
+      // Generate QR code when session starts
+      useEffect(() => {
+        if (qrActive && qrSession && qrContainerRef.current && !qrGenerated) {
+          qrContainerRef.current.innerHTML = '';
+          
+          try {
+            const qrData = JSON.stringify({
+              sessionId: qrSession.id,
+              classId: qrSession.classId,
+              subjectId: qrSession.subjectId,
+              teacherId: qrSession.teacherId,
+              expiresAt: qrSession.expiresAt
+            });
+            
+            if (typeof QRCode !== 'undefined') {
+              new QRCode(qrContainerRef.current, {
+                text: qrData,
+                width: 200,
+                height: 200,
+                colorDark: '#6366f1',
+                colorLight: '#ffffff',
+                correctLevel: QRCode.CorrectLevel.H
+              });
+              setQrGenerated(true);
+            } else {
+              qrContainerRef.current.innerHTML = `
+                <div style="width:200px;height:200px;background:var(--primary-gradient);border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:32px;color:white;flex-direction:column;gap:8px;">
+                  <i class="fas fa-qrcode" style="font-size:64px;"></i>
+                  <span style="font-size:14px;">QR Code</span>
+                  <span style="font-size:10px;opacity:0.7;">Session: ${qrSession.id.slice(-6)}</span>
+                </div>
+              `;
+              showToast('QRCode library not loaded, using fallback','warning');
+            }
+          } catch (err) {
+            console.error('QR generation error:', err);
+            qrContainerRef.current.innerHTML = `
+              <div style="width:200px;height:200px;background:#fee2e2;border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:32px;color:#991b1b;flex-direction:column;gap:8px;border:2px solid #ef4444;">
+                <i class="fas fa-exclamation-circle" style="font-size:48px;"></i>
+                <span style="font-size:14px;">Error generating QR</span>
+              </div>
+            `;
+            showToast('Error generating QR code','error');
+          }
+        }
+      }, [qrActive, qrSession, qrGenerated]);
+
+      // Start QR Session (Teacher)
       const startQR = () => {
-        if (!selectedClass || !selectedSubject) { showToast('Please select class and subject','error'); return; }
+        if (!selectedClass || !selectedSubject) { 
+          showToast('Please select class and subject','error'); 
+          return; 
+        }
+        const existing = DB.qrSessions.find(s => s.active && new Date(s.expiresAt) > new Date() && s.classId === selectedClass);
+        if (existing) {
+          showToast('An active QR session already exists for this class. Wait for it to expire.','warning');
+          return;
+        }
+        
         const session = API.createQRSession(teacher?.id||'t1', selectedClass, selectedSubject);
-        setQrSession(session); setQrActive(true); setTimer(120); setScanResult(null);
-        showToast('QR Session started! Students can now scan.','success');
+        setQrSession(session); 
+        setQrActive(true); 
+        setTimer(120); 
+        setScanResult(null);
+        setQrGenerated(false);
+        showToast('📱 QR Session started! Students can scan now.', 'success');
       };
 
+      // Open scan confirmation dialog (Student)
       const openScanConfirm = (session) => {
-        if (!student) { showToast('Student profile not found','error'); return; }
-        setQrSession(session);
+        if (!student) { 
+          showToast('Student profile not found','error'); 
+          return; 
+        }
+        setScanningSessionId(session.id);
         setShowScanConfirm(true);
         setScanResult(null);
       };
 
+      // Confirm scan and mark attendance (Student)
       const confirmScan = () => {
-        if (!qrSession || !student) { showToast('Invalid session','error'); return; }
-        const result = API.scanQR(qrSession.id, student.id);
+        if (!scanningSessionId || !student) { 
+          showToast('Invalid session','error'); 
+          return; 
+        }
+        
+        const session = DB.qrSessions.find(s => s.id === scanningSessionId);
+        if (!session) {
+          showToast('QR session not found','error');
+          setShowScanConfirm(false);
+          return;
+        }
+        
+        if (new Date(session.expiresAt) < new Date()) {
+          showToast('⏰ QR session has expired!','error');
+          setShowScanConfirm(false);
+          setActiveSessions(activeSessions.filter(s => s.id !== scanningSessionId));
+          return;
+        }
+        
+        const result = API.scanQR(scanningSessionId, student.id);
         setShowScanConfirm(false);
         if (result.success) {
-          setScanResult({status:'success',message:`Attendance recorded! Welcome, ${student.name}.`});
-          showToast(`Attendance recorded for ${student.name}!`,'success');
+          const sub = API.getSubjectById(session.subjectId);
+          setScanResult({
+            status:'success', 
+            message:`✅ Attendance recorded for ${student.name}!`, 
+            details: `📚 ${sub?.name || 'Subject'} | ${new Date().toLocaleDateString()}`
+          });
+          const updated = API.getActiveQRSessions(student?.classId);
+          setActiveSessions(updated);
+          showToast(`✅ Attendance recorded for ${student.name}!`, 'success');
         } else {
-          setScanResult({status:'error',message:result.error});
-          showToast(result.error,'error');
+          setScanResult({
+            status:'error', 
+            message:`❌ ${result.error}`
+          });
+          showToast(result.error, 'error');
         }
-        setTimeout(()=>setScanResult(null),6000);
+        setTimeout(()=>setScanResult(null),8000);
       };
 
       const handleBulkAttendance = (studentId, status) => {
@@ -1289,7 +1389,7 @@
         if (result.success) {
           setAddResult(result);
           showToast(`Student added! Roll No: ${result.student.rollNo}`,'success');
-          setNewStudent({name:'',phone:'',email:'',gender:'Male',classId:'cls1',departmentId:'d1',guardian:'',guardianPhone:'',address:''});
+          setNewStudent({name:'', phone:'', email:'', gender:'Male', classId:'cls1', departmentId:'d1', guardian:'', guardianPhone:'', address:''});
           setTimeout(()=>setAddResult(null),5000);
         } else {
           showToast('Failed to add student','error');
@@ -1313,19 +1413,23 @@
               <div className="card-header"><h3 className="card-title"><i className="fas fa-qrcode"></i> Scan QR Attendance</h3></div>
               {activeSessions.length > 0 ? (
                 <div>
-                  <p style={{color:'var(--text-secondary)',marginBottom:'16px',fontSize:'14px'}}><i className="fas fa-info-circle"></i> {activeSessions.length} active QR session(s) found for your class.</p>
+                  <p style={{color:'var(--text-secondary)',marginBottom:'16px',fontSize:'14px'}}>
+                    <i className="fas fa-info-circle" style={{color:'var(--primary)'}}></i> {activeSessions.length} active QR session(s) found.
+                  </p>
                   {activeSessions.map((session, idx) => {
                     const sub = API.getSubjectById(session.subjectId);
                     const cls = API.getClassById(session.classId);
                     const timeLeft = Math.max(0, Math.floor((new Date(session.expiresAt) - new Date()) / 1000));
                     return (
-                      <div key={idx} style={{padding:'16px',background:'var(--bg-primary)',borderRadius:'12px',marginBottom:'12px',border:'1.5px solid var(--border-color)'}}>
+                      <div key={idx} style={{padding:'16px',background:'var(--bg-primary)',borderRadius:'12px',marginBottom:'12px',border:'2px solid var(--primary)'}}>
                         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'8px'}}>
                           <span style={{fontWeight:700,fontSize:'15px'}}><i className="fas fa-book" style={{color:'var(--primary)'}}></i> {sub?.name || 'Subject'}</span>
-                          <span className="badge badge-success"><i className="fas fa-circle" style={{fontSize:'8px'}}></i> Active</span>
+                          <span className="badge badge-success" style={{animation:'pulse-glow 2s infinite'}}><i className="fas fa-circle" style={{fontSize:'8px'}}></i> Active</span>
                         </div>
-                        <div style={{fontSize:'13px',color:'var(--text-secondary)',marginBottom:'12px'}}>Class: {cls?.name} · Expires in {Math.floor(timeLeft/60)}:{(timeLeft%60).toString().padStart(2,'0')}</div>
-                        <button className="btn btn-primary btn-block" onClick={()=>openScanConfirm(session)}>
+                        <div style={{fontSize:'13px',color:'var(--text-secondary)',marginBottom:'12px'}}>
+                          Class: {cls?.name} · Expires in <strong>{Math.floor(timeLeft/60)}:{(timeLeft%60).toString().padStart(2,'0')}</strong>
+                        </div>
+                        <button className="btn btn-primary btn-block" onClick={()=>openScanConfirm(session)} style={{fontSize:'15px',padding:'12px'}}>
                           <i className="fas fa-camera"></i> Scan & Confirm Attendance
                         </button>
                       </div>
@@ -1333,16 +1437,23 @@
                   })}
                 </div>
               ) : (
-                <div style={{textAlign:'center',padding:'32px 20px'}}>
-                  <div className="qr-placeholder" style={{width:'120px',height:'120px',margin:'0 auto 16px',opacity:0.3}}><i className="fas fa-qrcode" style={{fontSize:'48px'}}></i></div>
+                <div style={{textAlign:'center',padding:'40px 20px'}}>
+                  <div style={{width:'120px',height:'120px',background:'var(--bg-primary)',borderRadius:'16px',border:'2px dashed var(--border-color)',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 16px'}}>
+                    <i className="fas fa-qrcode" style={{fontSize:'48px',color:'var(--text-light)',opacity:0.5}}></i>
+                  </div>
                   <p style={{color:'var(--text-secondary)',fontSize:'15px'}}>No active QR sessions found.</p>
                   <p style={{color:'var(--text-light)',fontSize:'13px',marginTop:'4px'}}>Your teacher hasn't started a QR attendance session yet.</p>
                 </div>
               )}
               {scanResult && (
-                <div style={{marginTop:'16px',padding:'14px 18px',borderRadius:'12px',background:scanResult.status==='success'?'#d1fae5':'#fee2e2',border:`1.5px solid ${scanResult.status==='success'?'#10b981':'#ef4444'}`,display:'flex',alignItems:'center',gap:'10px'}}>
-                  <i className={`fas fa-${scanResult.status==='success'?'check-circle':'exclamation-circle'}`} style={{fontSize:'20px',color:scanResult.status==='success'?'#065f46':'#991b1b'}}></i>
-                  <span style={{fontWeight:700,color:scanResult.status==='success'?'#065f46':'#991b1b'}}>{scanResult.message}</span>
+                <div style={{marginTop:'16px',padding:'16px 20px',borderRadius:'12px',background:scanResult.status==='success'?'#d1fae5':'#fee2e2',border:`2px solid ${scanResult.status==='success'?'#10b981':'#ef4444'}`}}>
+                  <div style={{display:'flex',alignItems:'center',gap:'12px'}}>
+                    <i className={`fas fa-${scanResult.status==='success'?'check-circle':'exclamation-circle'}`} style={{fontSize:'24px',color:scanResult.status==='success'?'#065f46':'#991b1b'}}></i>
+                    <div>
+                      <div style={{fontWeight:700,color:scanResult.status==='success'?'#065f46':'#991b1b',fontSize:'15px'}}>{scanResult.message}</div>
+                      {scanResult.details && <div style={{fontSize:'13px',color:'var(--text-secondary)'}}>{scanResult.details}</div>}
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
@@ -1360,21 +1471,35 @@
           </div>
 
           {showScanConfirm && (
-            <Modal isOpen={showScanConfirm} onClose={()=>setShowScanConfirm(false)} title="Confirm Attendance" footer={
+            <Modal isOpen={showScanConfirm} onClose={()=>setShowScanConfirm(false)} title="📸 Confirm Attendance" footer={
               <><button className="btn btn-secondary" onClick={()=>setShowScanConfirm(false)}>Cancel</button>
-              <button className="btn btn-success" onClick={confirmScan}><i className="fas fa-check"></i> Confirm & Mark Present</button></>
+              <button className="btn btn-success" onClick={confirmScan} style={{fontSize:'15px',padding:'12px 24px'}}><i className="fas fa-check"></i> Confirm & Mark Present</button></>
             }>
               <div style={{textAlign:'center',padding:'20px'}}>
                 <div style={{width:'80px',height:'80px',borderRadius:'50%',background:'var(--primary-gradient)',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 16px',fontSize:'32px',color:'white'}}><i className="fas fa-user-check"></i></div>
                 <h3 style={{marginBottom:'8px'}}>Verify Your Identity</h3>
-                <p style={{color:'var(--text-secondary)',marginBottom:'20px'}}>Please confirm your details before marking attendance.</p>
-                <div style={{background:'var(--bg-primary)',borderRadius:'12px',padding:'16px',textAlign:'left',marginBottom:'16px'}}>
-                  <div style={{marginBottom:'10px'}}><span style={{color:'var(--text-light)',fontSize:'12px',textTransform:'uppercase',letterSpacing:'0.5px'}}>Name</span><div style={{fontWeight:700}}>{student?.name}</div></div>
-                  <div style={{marginBottom:'10px'}}><span style={{color:'var(--text-light)',fontSize:'12px',textTransform:'uppercase',letterSpacing:'0.5px'}}>Roll Number</span><div style={{fontWeight:700}}>{student?.rollNo}</div></div>
-                  <div style={{marginBottom:'10px'}}><span style={{color:'var(--text-light)',fontSize:'12px',textTransform:'uppercase',letterSpacing:'0.5px'}}>Email</span><div style={{fontWeight:700}}>{user?.email}</div></div>
-                  <div><span style={{color:'var(--text-light)',fontSize:'12px',textTransform:'uppercase',letterSpacing:'0.5px'}}>Class</span><div style={{fontWeight:700}}>{API.getClassById(student?.classId)?.name}</div></div>
+                <p style={{color:'var(--text-secondary)',marginBottom:'20px'}}>Confirm your details before marking attendance.</p>
+                <div style={{background:'var(--bg-primary)',borderRadius:'12px',padding:'16px',textAlign:'left',marginBottom:'16px',border:'1px solid var(--border-color)'}}>
+                  <div style={{marginBottom:'10px',display:'flex',justifyContent:'space-between'}}>
+                    <span style={{color:'var(--text-light)',fontSize:'12px',textTransform:'uppercase',letterSpacing:'0.5px'}}>Name</span>
+                    <div style={{fontWeight:700}}>{student?.name}</div>
+                  </div>
+                  <div style={{marginBottom:'10px',display:'flex',justifyContent:'space-between'}}>
+                    <span style={{color:'var(--text-light)',fontSize:'12px',textTransform:'uppercase',letterSpacing:'0.5px'}}>Roll Number</span>
+                    <div style={{fontWeight:700}}>{student?.rollNo}</div>
+                  </div>
+                  <div style={{marginBottom:'10px',display:'flex',justifyContent:'space-between'}}>
+                    <span style={{color:'var(--text-light)',fontSize:'12px',textTransform:'uppercase',letterSpacing:'0.5px'}}>Email</span>
+                    <div style={{fontWeight:700}}>{user?.email}</div>
+                  </div>
+                  <div style={{display:'flex',justifyContent:'space-between'}}>
+                    <span style={{color:'var(--text-light)',fontSize:'12px',textTransform:'uppercase',letterSpacing:'0.5px'}}>Class</span>
+                    <div style={{fontWeight:700}}>{API.getClassById(student?.classId)?.name}</div>
+                  </div>
                 </div>
-                <p style={{fontSize:'13px',color:'var(--text-light)'}}><i className="fas fa-shield-alt"></i> Your attendance will be recorded with timestamp verification.</p>
+                <div style={{background:'#dbeafe',borderRadius:'8px',padding:'12px',fontSize:'13px',color:'#1e40af'}}>
+                  <i className="fas fa-shield-alt"></i> Your attendance will be recorded with timestamp verification.
+                </div>
               </div>
             </Modal>
           )}
@@ -1400,7 +1525,7 @@
                   <tr key={s.id}><td className="td-name"><div className="td-avatar">{s.name.charAt(0)}</div><div className="td-info"><span className="name">{s.name}</span><span className="sub">{API.getClassById(s.classId)?.name}</span></div></td>
                   <td>{s.rollNo}</td><td><div className="progress-bar" style={{width:'80px',display:'inline-block',marginRight:'8px',verticalAlign:'middle'}}><div className={`fill ${(st.percentage||0)>80?'success':(st.percentage||0)>70?'warning':'danger'}`} style={{width:`${st.percentage||0}%`}}></div></div> {st.percentage||0}%</td>
                   <td>{st.present||0}</td><td>{st.absent||0}</td>
-                  <td><span className={`badge ${(st.percentage||0)>=75?'badge-success':'badge-danger'}`}>{(st.percentage||0)>=75?'Good':'At Risk'}</span></td></tr>
+                  <td><span className={`badge ${(st.percentage||0)>=75?'badge-success':'badge-danger'}`}>{(st.percentage||0)>=75?'✅ Good':'⚠️ At Risk'}</span></td></tr>
                 );})}</tbody>
                 </table>
               </div>
@@ -1427,10 +1552,11 @@
                   return (
                     <tr key={s.id}><td className="td-name"><div className="td-avatar">{s.name.charAt(0)}</div><div className="td-info"><span className="name">{s.name}</span></div></td>
                     <td>{s.rollNo}</td>
-                    <td><div style={{display:'flex',gap:'6px'}}>
+                    <td><div style={{display:'flex',gap:'6px',flexWrap:'wrap'}}>
                       <button className={`btn btn-sm ${currentStatus==='PRESENT'?'btn-success':'btn-secondary'}`} onClick={()=>handleBulkAttendance(s.id,'PRESENT')}><i className="fas fa-check"></i> Present</button>
                       <button className={`btn btn-sm ${currentStatus==='LATE'?'btn-warning':'btn-secondary'}`} onClick={()=>handleBulkAttendance(s.id,'LATE')}><i className="fas fa-clock"></i> Late</button>
                       <button className={`btn btn-sm ${currentStatus==='ABSENT'?'btn-danger':'btn-secondary'}`} onClick={()=>handleBulkAttendance(s.id,'ABSENT')}><i className="fas fa-times"></i> Absent</button>
+                      {currentStatus && <span className="badge badge-secondary">✅ Already Marked</span>}
                     </div></td></tr>
                   );
                 })}</tbody>
@@ -1451,18 +1577,27 @@
                     {(API.getSubjects() || []).map(s=><option key={s.id} value={s.id}>{s.name}</option>)}
                   </select>
                 </div>
-                <button className="btn btn-primary btn-lg" onClick={startQR} disabled={qrActive} style={{minWidth:'220px'}}>
+                <button className="btn btn-primary btn-lg" onClick={startQR} disabled={qrActive} style={{minWidth:'220px',padding:'14px 32px',fontSize:'16px'}}>
                   {qrActive?<><i className="fas fa-circle-notch fa-spin"></i> Session Active...</>:<><i className="fas fa-play"></i> Start QR Session</>}
                 </button>
-                {qrActive && (
+                {qrActive && qrSession && (
                   <div style={{marginTop:'32px'}}>
-                    <div className="qr-placeholder animate-pulse-glow" style={{margin:'0 auto'}}><i className="fas fa-qrcode"></i></div>
+                    <div ref={qrContainerRef} style={{display:'flex',justifyContent:'center',marginBottom:'16px'}}></div>
                     <div className="qr-timer">{Math.floor(timer/60)}:{(timer%60).toString().padStart(2,'0')}</div>
-                    <p style={{color:'var(--text-secondary)'}}>Students can now scan this code to mark attendance for {API.getSubjectById(selectedSubject)?.name}</p>
-                    <div style={{marginTop:'16px',display:'flex',gap:'8px',justifyContent:'center'}}>
-                      <span className="badge badge-success"><i className="fas fa-wifi"></i> Broadcasting</span>
-                      <span className="badge badge-info"><i className="fas fa-users"></i> Class: {API.getClassById(selectedClass)?.name}</span>
+                    <p style={{color:'var(--text-secondary)',fontSize:'15px'}}>
+                      <i className="fas fa-wifi" style={{color:'var(--success)'}}></i> Students can scan this QR code to mark attendance
+                    </p>
+                    <div style={{marginTop:'16px',display:'flex',gap:'8px',justifyContent:'center',flexWrap:'wrap'}}>
+                      <span className="badge badge-success" style={{padding:'6px 14px',fontSize:'12px'}}><i className="fas fa-wifi"></i> Broadcasting</span>
+                      <span className="badge badge-info" style={{padding:'6px 14px',fontSize:'12px'}}><i className="fas fa-users"></i> Class: {API.getClassById(selectedClass)?.name}</span>
+                      <span className="badge badge-primary" style={{padding:'6px 14px',fontSize:'12px'}}><i className="fas fa-book"></i> {API.getSubjectById(selectedSubject)?.name}</span>
+                      <span className="badge badge-warning" style={{padding:'6px 14px',fontSize:'12px'}}><i className="fas fa-clock"></i> Expires in {Math.floor(timer/60)}:{(timer%60).toString().padStart(2,'0')}</span>
                     </div>
+                  </div>
+                )}
+                {!qrActive && !qrSession && (
+                  <div style={{marginTop:'16px'}}>
+                    <p style={{color:'var(--text-light)',fontSize:'14px'}}>Click "Start QR Session" to generate a scannable QR code</p>
                   </div>
                 )}
               </div>
@@ -1471,9 +1606,9 @@
                 <div className="table-container">
                   <table><thead><tr><th>Session ID</th><th>Class</th><th>Subject</th><th>Started</th><th>Status</th></tr></thead>
                   <tbody>{(DB.qrSessions || []).slice(-5).reverse().map((s,i)=> (
-                    <tr key={i}><td>{s.id.slice(-6)}</td><td>{API.getClassById(s.classId)?.name}</td><td>{API.getSubjectById(s.subjectId)?.name}</td>
+                    <tr key={i}><td>#{s.id.slice(-6)}</td><td>{API.getClassById(s.classId)?.name}</td><td>{API.getSubjectById(s.subjectId)?.name}</td>
                     <td>{new Date(s.createdAt).toLocaleTimeString()}</td>
-                    <td><span className={`badge ${s.active && new Date(s.expiresAt)>new Date()?'badge-success':'badge-secondary'}`}>{s.active && new Date(s.expiresAt)>new Date()?'Active':'Expired'}</span></td></tr>
+                    <td><span className={`badge ${s.active && new Date(s.expiresAt)>new Date()?'badge-success':'badge-secondary'}`}>{s.active && new Date(s.expiresAt)>new Date()?'🟢 Active':'🔴 Expired'}</span></td></tr>
                   ))}</tbody>
                   </table>
                 </div>
@@ -1506,11 +1641,23 @@
                     <div style={{textAlign:'center',padding:'20px'}}>
                       <div style={{width:'64px',height:'64px',borderRadius:'50%',background:'var(--success)',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 16px',fontSize:'28px',color:'white'}}><i className="fas fa-check"></i></div>
                       <h3 style={{marginBottom:'8px'}}>Student Added Successfully!</h3>
-                      <div style={{background:'var(--bg-primary)',borderRadius:'12px',padding:'16px',textAlign:'left',marginTop:'16px'}}>
-                        <div style={{marginBottom:'10px'}}><span style={{color:'var(--text-light)',fontSize:'12px',textTransform:'uppercase'}}>Name</span><div style={{fontWeight:700}}>{addResult.student.name}</div></div>
-                        <div style={{marginBottom:'10px'}}><span style={{color:'var(--text-light)',fontSize:'12px',textTransform:'uppercase'}}>Roll Number</span><div style={{fontWeight:700,color:'var(--primary)',fontSize:'18px'}}>{addResult.student.rollNo}</div></div>
-                        <div style={{marginBottom:'10px'}}><span style={{color:'var(--text-light)',fontSize:'12px',textTransform:'uppercase'}}>Email</span><div style={{fontWeight:700}}>{addResult.user.email}</div></div>
-                        <div><span style={{color:'var(--text-light)',fontSize:'12px',textTransform:'uppercase'}}>Password</span><div style={{fontWeight:700}}>password</div></div>
+                      <div style={{background:'var(--bg-primary)',borderRadius:'12px',padding:'16px',textAlign:'left',marginTop:'16px',border:'1px solid var(--border-color)'}}>
+                        <div style={{marginBottom:'10px',display:'flex',justifyContent:'space-between'}}>
+                          <span style={{color:'var(--text-light)',fontSize:'12px',textTransform:'uppercase'}}>Name</span>
+                          <div style={{fontWeight:700}}>{addResult.student.name}</div>
+                        </div>
+                        <div style={{marginBottom:'10px',display:'flex',justifyContent:'space-between'}}>
+                          <span style={{color:'var(--text-light)',fontSize:'12px',textTransform:'uppercase'}}>Roll Number</span>
+                          <div style={{fontWeight:700,color:'var(--primary)',fontSize:'18px'}}>{addResult.student.rollNo}</div>
+                        </div>
+                        <div style={{marginBottom:'10px',display:'flex',justifyContent:'space-between'}}>
+                          <span style={{color:'var(--text-light)',fontSize:'12px',textTransform:'uppercase'}}>Email</span>
+                          <div style={{fontWeight:700}}>{addResult.user.email}</div>
+                        </div>
+                        <div style={{display:'flex',justifyContent:'space-between'}}>
+                          <span style={{color:'var(--text-light)',fontSize:'12px',textTransform:'uppercase'}}>Password</span>
+                          <div style={{fontWeight:700,color:'var(--warning)'}}>password</div>
+                        </div>
                       </div>
                       <p style={{fontSize:'13px',color:'var(--text-light)',marginTop:'12px'}}><i className="fas fa-info-circle"></i> Student can login with email and password: <strong>password</strong></p>
                     </div>
@@ -1527,7 +1674,10 @@
           )}
         </div>
       );
-    }function TimetablePage({ user, role, viewAs }) {
+    }
+
+    // ===================== TIMETABLE =====================
+    function TimetablePage({ user, role, viewAs }) {
       const effectiveRole = viewAs || role;
       const [selectedClass, setSelectedClass] = useState('cls1');
       const [selectedDay, setSelectedDay] = useState('Monday');
