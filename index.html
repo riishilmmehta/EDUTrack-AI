@@ -493,6 +493,7 @@
         { id:'tt10', classId:'cls1', day:'Friday', subjectId:'sub2', teacherId:'t2', time:'09:00-10:30', room:'L-302', type:'LECTURE' },
         { id:'tt11', classId:'cls1', day:'Friday', subjectId:'sub3', teacherId:'t1', time:'10:45-12:15', room:'L-301', type:'LECTURE' }
       ];
+      const baseTime = now.getTime();
       DB.interventions = [
         { id:'int1', studentId:'s1', studentName:'Aarav Shah', teacherId:'t1', reason:'Low SQL JOIN performance (48%) and attendance below threshold', suggestedAction:'Assign SQL JOIN practice + revision', actionTaken:'Assigned SQL JOIN practice quiz', status:'IN_PROGRESS', assignedAt:'2026-08-12', beforeScore:48, afterScore:null, evidence:'Quiz score: 48%, Attendance: 68%', createdAt:new Date(baseTime - 5*86400000).toISOString() },
         { id:'int2', studentId:'s5', studentName:'Aditya Joshi', teacherId:'t1', reason:'Multiple backlogs and low attendance (73%)', suggestedAction:'Academic counseling + attendance improvement plan', actionTaken:'Counseling session scheduled', status:'PENDING', assignedAt:'2026-08-18', beforeScore:62, afterScore:null, evidence:'2 backlogs, Attendance: 73%', createdAt:new Date(baseTime - 2*86400000).toISOString() }
@@ -508,7 +509,6 @@
         { id:'ev3', title:'Mid-Term Exams Begin', date:'2026-09-01', type:'EXAM', description:'Semester mid-term examinations' },
         { id:'ev4', title:'Project Submission', date:'2026-08-28', type:'DEADLINE', description:'Final project submission for DBMS' }
       ];
-      const baseTime = now.getTime();
       DB.notifications = [
         { id:'n1', userId:'u3', title:'Quiz Published', message:'SQL Joins Mastery Quiz is now available. Duration: 20 mins', type:'ASSESSMENT', read:false, link:'#quiz', createdAt:new Date(baseTime - 2*3600000).toISOString() },
         { id:'n2', userId:'u3', title:'Attendance Alert', message:'Your attendance is at 68%, below the required 75%', type:'ATTENDANCE', read:false, link:'#attendance', createdAt:new Date(baseTime - 4*3600000).toISOString() },
