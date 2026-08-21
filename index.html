@@ -1,0 +1,2240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EDUTrack AI Pro · Next-Gen Academic OS</title>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --primary: #6366f1; --primary-dark: #4f46e5; --primary-light: #818cf8;
+      --primary-gradient: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%);
+      --secondary: #0ea5e9; --success: #10b981; --warning: #f59e0b; --danger: #ef4444; --info: #3b82f6;
+      --bg-primary: #f8fafc; --bg-secondary: #ffffff; --bg-sidebar: #0f172a;
+      --bg-card: #ffffff; --bg-glass: rgba(255,255,255,0.7);
+      --text-primary: #0f172a; --text-secondary: #475569; --text-light: #94a3b8;
+      --border-color: #e2e8f0; --border-light: #f1f5f9;
+      --shadow-sm: 0 1px 2px rgba(0,0,0,0.04); --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
+      --shadow-lg: 0 12px 24px rgba(0,0,0,0.12); --shadow-xl: 0 24px 48px rgba(0,0,0,0.18);
+      --shadow-glow: 0 0 40px rgba(99,102,241,0.15);
+      --radius: 14px; --radius-lg: 20px; --radius-full: 9999px;
+      --sidebar-width: 280px; --sidebar-collapsed: 72px; --topbar-height: 76px;
+      --transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      --transition-bounce: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    [data-theme="dark"] {
+      --bg-primary: #020617; --bg-secondary: #0f172a; --bg-sidebar: #020617;
+      --bg-card: #1e293b; --bg-glass: rgba(15,23,42,0.7);
+      --text-primary: #f8fafc; --text-secondary: #94a3b8; --text-light: #64748b;
+      --border-color: #334155; --border-light: #1e293b;
+      --shadow-glow: 0 0 40px rgba(99,102,241,0.25);
+    }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family:'Inter',sans-serif; background:var(--bg-primary); color:var(--text-primary); transition:var(--transition); overflow:hidden; height:100vh; }
+    ::-webkit-scrollbar { width:5px; height:5px; }
+    ::-webkit-scrollbar-track { background:transparent; }
+    ::-webkit-scrollbar-thumb { background:var(--primary-light); border-radius:var(--radius-full); }
+    ::-webkit-scrollbar-thumb:hover { background:var(--primary); }
+
+    @keyframes fadeIn { from { opacity:0; transform:translateY(20px) scale(0.98); } to { opacity:1; transform:translateY(0) scale(1); } }
+    @keyframes fadeInLeft { from { opacity:0; transform:translateX(-30px); } to { opacity:1; transform:translateX(0); } }
+    @keyframes scaleIn { from { opacity:0; transform:scale(0.9); } to { opacity:1; transform:scale(1); } }
+    @keyframes slideUp { from { transform:translateY(100%); opacity:0; } to { transform:translateY(0); opacity:1; } }
+    @keyframes pulse-glow { 0%,100% { box-shadow:0 0 0 0 rgba(99,102,241,0.4); } 50% { box-shadow:0 0 0 12px rgba(99,102,241,0); } }
+    @keyframes float { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-8px); } }
+    @keyframes shimmer { 0% { background-position:-200% 0; } 100% { background-position:200% 0; } }
+    @keyframes gradient-shift { 0% { background-position:0% 50%; } 50% { background-position:100% 50%; } 100% { background-position:0% 50%; } }
+    @keyframes typingBounce { 0%,80%,100% { transform:scale(0); } 40% { transform:scale(1); } }
+
+    .animate-fadeIn { animation:fadeIn 0.5s cubic-bezier(0.4,0,0.2,1) forwards; }
+    .animate-scaleIn { animation:scaleIn 0.4s cubic-bezier(0.34,1.56,0.64,1) forwards; }
+    .animate-float { animation:float 3s ease-in-out infinite; }
+    .stagger-1 { animation-delay:0.05s; opacity:0; animation-fill-mode:forwards; }
+    .stagger-2 { animation-delay:0.1s; opacity:0; animation-fill-mode:forwards; }
+    .stagger-3 { animation-delay:0.15s; opacity:0; animation-fill-mode:forwards; }
+    .stagger-4 { animation-delay:0.2s; opacity:0; animation-fill-mode:forwards; }
+    .stagger-5 { animation-delay:0.25s; opacity:0; animation-fill-mode:forwards; }
+
+    .hidden { display:none !important; }
+    .flex { display:flex; } .flex-col { flex-direction:column; } .items-center { align-items:center; } .justify-between { justify-content:space-between; } .justify-center { justify-content:center; }
+    .gap-1 { gap:4px; } .gap-2 { gap:8px; } .gap-3 { gap:12px; } .gap-4 { gap:16px; } .gap-6 { gap:24px; }
+    .w-full { width:100%; } .h-full { height:100%; } .text-center { text-align:center; } .relative { position:relative; }
+
+    .btn {
+      display:inline-flex; align-items:center; justify-content:center; gap:8px;
+      padding:10px 20px; border:none; border-radius:var(--radius); font-weight:600; font-size:13px;
+      cursor:pointer; transition:var(--transition); text-decoration:none; position:relative; overflow:hidden;
+      font-family:'Inter',sans-serif; letter-spacing:0.2px;
+    }
+    .btn-primary { background:var(--primary-gradient); color:white; box-shadow:0 4px 14px rgba(99,102,241,0.35); }
+    .btn-primary:hover { transform:translateY(-2px); box-shadow:0 8px 24px rgba(99,102,241,0.45); }
+    .btn-secondary { background:var(--bg-secondary); color:var(--text-primary); border:1.5px solid var(--border-color); }
+    .btn-secondary:hover { background:var(--border-light); transform:translateY(-1px); }
+    .btn-success { background:linear-gradient(135deg,#10b981,#059669); color:white; box-shadow:0 4px 14px rgba(16,185,129,0.3); }
+    .btn-success:hover { transform:translateY(-2px); box-shadow:0 8px 24px rgba(16,185,129,0.4); }
+    .btn-danger { background:linear-gradient(135deg,#ef4444,#dc2626); color:white; }
+    .btn-warning { background:linear-gradient(135deg,#f59e0b,#d97706); color:white; }
+    .btn-ghost { background:transparent; color:var(--text-secondary); }
+    .btn-ghost:hover { background:var(--bg-primary); color:var(--text-primary); }
+    .btn-sm { padding:6px 14px; font-size:12px; border-radius:10px; } .btn-lg { padding:14px 28px; font-size:15px; } .btn-block { width:100%; }
+    .btn-icon { width:40px; height:40px; padding:0; border-radius:12px; }
+
+    .card {
+      background:var(--bg-card); border-radius:var(--radius-lg); padding:24px;
+      box-shadow:var(--shadow-sm); border:1px solid var(--border-color); transition:var(--transition); position:relative; overflow:hidden;
+    }
+    .card::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; background:var(--primary-gradient); opacity:0; transition:opacity 0.3s; }
+    .card:hover { box-shadow:var(--shadow-lg); transform:translateY(-2px); }
+    .card:hover::before { opacity:1; }
+    .card-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; }
+    .card-title { font-size:16px; font-weight:700; color:var(--text-primary); display:flex; align-items:center; gap:10px; }
+    .card-title i { color:var(--primary); font-size:18px; }
+    .card-gradient { background:var(--primary-gradient); color:white; border:none; box-shadow:var(--shadow-glow); }
+    .card-gradient .card-title { color:white; }
+
+    .badge { display:inline-flex; align-items:center; gap:4px; padding:5px 12px; border-radius:var(--radius-full); font-size:11px; font-weight:700; letter-spacing:0.3px; }
+    .badge-success { background:#d1fae5; color:#065f46; } .badge-warning { background:#fef3c7; color:#92400e; }
+    .badge-danger { background:#fee2e2; color:#991b1b; } .badge-info { background:#dbeafe; color:#1e40af; }
+    .badge-primary { background:#e0e7ff; color:#3730a3; } .badge-secondary { background:#f1f5f9; color:#475569; }
+    [data-theme="dark"] .badge-success { background:#065f46; color:#d1fae5; }
+    [data-theme="dark"] .badge-warning { background:#92400e; color:#fef3c7; }
+    [data-theme="dark"] .badge-danger { background:#991b1b; color:#fee2e2; }
+    [data-theme="dark"] .badge-info { background:#1e40af; color:#dbeafe; }
+    [data-theme="dark"] .badge-primary { background:#3730a3; color:#e0e7ff; }
+
+    .input {
+      width:100%; padding:12px 16px; border:1.5px solid var(--border-color); border-radius:var(--radius);
+      font-family:'Inter',sans-serif; font-size:14px; background:var(--bg-primary); color:var(--text-primary);
+      transition:var(--transition); outline:none;
+    }
+    .input:focus { border-color:var(--primary); box-shadow:0 0 0 4px rgba(99,102,241,0.1); }
+    .form-label { display:block; font-size:12px; font-weight:600; color:var(--text-secondary); margin-bottom:6px; text-transform:uppercase; letter-spacing:0.5px; }
+    .form-group { margin-bottom:16px; }
+
+    .login-container {
+      min-height:100vh; display:flex; align-items:center; justify-content:center;
+      background:linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #312e81 100%);
+      padding:20px; position:relative; overflow:hidden;
+    }
+    .login-bg-pattern { position:absolute; inset:0; opacity:0.05; background-image:radial-gradient(circle at 1px 1px, white 1px, transparent 0); background-size:40px 40px; }
+    .login-orbs { position:absolute; width:600px; height:600px; border-radius:50%; background:radial-gradient(circle, rgba(99,102,241,0.3) 0%, transparent 70%); filter:blur(60px); animation:float 6s ease-in-out infinite; }
+    .login-orbs:nth-child(1) { top:-200px; left:-200px; }
+    .login-orbs:nth-child(2) { bottom:-200px; right:-200px; background:radial-gradient(circle, rgba(168,85,247,0.3) 0%, transparent 70%); animation-delay:3s; }
+    .login-box {
+      background:rgba(255,255,255,0.03); backdrop-filter:blur(20px); border:1px solid rgba(255,255,255,0.08);
+      border-radius:var(--radius-lg); padding:48px; max-width:440px; width:100%;
+      box-shadow:0 25px 50px -12px rgba(0,0,0,0.5); position:relative; z-index:1;
+    }
+    .login-box .logo { text-align:center; margin-bottom:36px; }
+    .login-box .logo .logo-icon { width:64px; height:64px; border-radius:20px; background:var(--primary-gradient); display:inline-flex; align-items:center; justify-content:center; font-size:28px; color:white; margin-bottom:16px; box-shadow:0 8px 24px rgba(99,102,241,0.4); animation:float 3s ease-in-out infinite; }
+    .login-box .logo h1 { font-size:30px; font-weight:800; color:white; font-family:'Space Grotesk',sans-serif; letter-spacing:-0.5px; }
+    .login-box .logo p { color:rgba(255,255,255,0.5); font-size:14px; margin-top:4px; }
+    .login-box .role-selector { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-bottom:24px; }
+    .login-box .role-btn { padding:14px 8px; border:1.5px solid rgba(255,255,255,0.1); border-radius:var(--radius); background:rgba(255,255,255,0.03); cursor:pointer; text-align:center; transition:var(--transition); font-size:12px; font-weight:600; color:rgba(255,255,255,0.5); }
+    .login-box .role-btn:hover { border-color:rgba(99,102,241,0.5); background:rgba(99,102,241,0.1); color:white; transform:translateY(-2px); }
+    .login-box .role-btn.active { border-color:var(--primary); background:rgba(99,102,241,0.15); color:white; box-shadow:0 0 20px rgba(99,102,241,0.2); }
+    .login-box .role-btn i { display:block; font-size:22px; margin-bottom:6px; }
+    .login-box .form-group label { color:rgba(255,255,255,0.6); font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:8px; display:block; }
+    .login-box .input { background:rgba(255,255,255,0.05); border-color:rgba(255,255,255,0.1); color:white; }
+    .login-box .input:focus { border-color:var(--primary-light); box-shadow:0 0 0 4px rgba(99,102,241,0.15); }
+    .login-box .input::placeholder { color:rgba(255,255,255,0.25); }
+
+    .app-container { display:flex; height:100vh; overflow:hidden; }
+    .sidebar { width:var(--sidebar-width); background:var(--bg-sidebar); color:white; display:flex; flex-direction:column; flex-shrink:0; transition:var(--transition); overflow-y:auto; overflow-x:hidden; z-index:100; position:relative; border-right:1px solid rgba(255,255,255,0.04); }
+    .sidebar-brand { padding:24px; border-bottom:1px solid rgba(255,255,255,0.06); display:flex; align-items:center; gap:12px; }
+    .sidebar-brand .brand-icon { width:42px; height:42px; border-radius:14px; background:var(--primary-gradient); display:flex; align-items:center; justify-content:center; font-size:20px; box-shadow:0 4px 12px rgba(99,102,241,0.3); flex-shrink:0; }
+    .sidebar-brand h2 { font-size:20px; font-weight:800; font-family:'Space Grotesk',sans-serif; background:linear-gradient(135deg,#818cf8,#c4b5fd); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+    .sidebar-brand small { font-size:10px; color:rgba(255,255,255,0.35); font-weight:500; letter-spacing:0.5px; }
+    .sidebar-nav { flex:1; padding:16px 12px; }
+    .sidebar-nav .nav-section { font-size:9px; text-transform:uppercase; letter-spacing:1.5px; color:rgba(255,255,255,0.25); padding:20px 16px 8px; font-weight:700; }
+    .sidebar-nav .nav-item { display:flex; align-items:center; gap:12px; padding:11px 16px; border-radius:12px; color:rgba(255,255,255,0.5); cursor:pointer; transition:var(--transition); text-decoration:none; font-size:13px; font-weight:600; margin-bottom:2px; position:relative; }
+    .sidebar-nav .nav-item:hover { background:rgba(255,255,255,0.05); color:white; }
+    .sidebar-nav .nav-item.active { background:linear-gradient(135deg, rgba(99,102,241,0.2), rgba(139,92,246,0.15)); color:white; box-shadow:0 2px 8px rgba(99,102,241,0.15); }
+    .sidebar-nav .nav-item.active::before { content:''; position:absolute; left:0; top:50%; transform:translateY(-50%); width:3px; height:20px; background:var(--primary-light); border-radius:0 4px 4px 0; }
+    .sidebar-nav .nav-item i { width:22px; text-align:center; font-size:17px; transition:transform 0.3s; }
+    .sidebar-nav .nav-item:hover i { transform:scale(1.1); }
+    .sidebar-nav .nav-item .nav-badge { margin-left:auto; background:var(--danger); color:white; font-size:9px; font-weight:700; padding:2px 7px; border-radius:var(--radius-full); min-width:18px; text-align:center; }
+    .sidebar-footer { padding:16px; border-top:1px solid rgba(255,255,255,0.06); display:flex; align-items:center; gap:12px; margin:12px; border-radius:var(--radius); background:rgba(255,255,255,0.03); transition:var(--transition); }
+    .sidebar-footer:hover { background:rgba(255,255,255,0.05); }
+    .sidebar-footer .avatar { width:38px; height:38px; border-radius:50%; background:var(--primary-gradient); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:14px; color:white; flex-shrink:0; border:2px solid rgba(255,255,255,0.1); }
+    .sidebar-footer .user-info { flex:1; min-width:0; }
+    .sidebar-footer .user-info .name { font-size:13px; font-weight:700; color:white; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .sidebar-footer .user-info .role { font-size:10px; color:rgba(255,255,255,0.4); font-weight:500; text-transform:uppercase; letter-spacing:0.5px; }
+    .sidebar-footer .theme-btn { width:32px; height:32px; border-radius:10px; border:none; background:rgba(255,255,255,0.08); color:rgba(255,255,255,0.6); cursor:pointer; display:flex; align-items:center; justify-content:center; transition:var(--transition); font-size:14px; }
+    .sidebar-footer .theme-btn:hover { background:rgba(255,255,255,0.15); color:white; transform:rotate(20deg); }
+
+    .main-content { flex:1; display:flex; flex-direction:column; overflow:hidden; position:relative; }
+    .topbar { height:var(--topbar-height); background:var(--bg-secondary); border-bottom:1px solid var(--border-color); display:flex; align-items:center; justify-content:space-between; padding:0 28px; flex-shrink:0; backdrop-filter:blur(12px); z-index:50; }
+    .topbar-left { display:flex; align-items:center; gap:16px; }
+    .topbar-left .menu-toggle { display:none; background:none; border:none; font-size:22px; color:var(--text-primary); cursor:pointer; width:40px; height:40px; border-radius:12px; transition:var(--transition); }
+    .topbar-left .menu-toggle:hover { background:var(--bg-primary); }
+    .topbar-left .page-title { font-size:20px; font-weight:800; font-family:'Space Grotesk',sans-serif; letter-spacing:-0.3px; }
+    .topbar-right { display:flex; align-items:center; gap:14px; }
+    .topbar-right .search-bar { display:flex; align-items:center; background:var(--bg-primary); border:1.5px solid var(--border-color); border-radius:var(--radius-full); padding:8px 18px; gap:10px; transition:var(--transition); width:280px; }
+    .topbar-right .search-bar:focus-within { border-color:var(--primary); box-shadow:0 0 0 4px rgba(99,102,241,0.08); width:320px; }
+    .topbar-right .search-bar input { border:none; background:none; outline:none; font-family:'Inter',sans-serif; font-size:13px; color:var(--text-primary); width:100%; }
+    .topbar-right .search-bar i { color:var(--text-light); font-size:14px; }
+    .topbar-right .icon-btn { width:42px; height:42px; border-radius:12px; border:none; background:var(--bg-primary); color:var(--text-secondary); cursor:pointer; transition:var(--transition-bounce); display:flex; align-items:center; justify-content:center; position:relative; font-size:17px; border:1.5px solid var(--border-color); }
+    .topbar-right .icon-btn:hover { background:var(--primary); color:white; border-color:var(--primary); transform:translateY(-2px) scale(1.05); box-shadow:0 4px 12px rgba(99,102,241,0.3); }
+    .topbar-right .icon-btn .badge-dot { position:absolute; top:8px; right:8px; width:9px; height:9px; background:var(--danger); border-radius:50%; border:2px solid var(--bg-secondary); box-shadow:0 0 0 2px var(--danger); animation:pulse-glow 2s infinite; }
+    .view-switcher { display:flex; align-items:center; gap:8px; padding:6px 12px; background:var(--bg-primary); border:1.5px solid var(--border-color); border-radius:var(--radius-full); font-size:12px; font-weight:600; }
+    .view-switcher select { border:none; background:none; outline:none; font-family:'Inter',sans-serif; font-size:12px; font-weight:700; color:var(--primary); cursor:pointer; }
+
+    .page-content { flex:1; overflow-y:auto; padding:28px; }
+
+    .stats-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:20px; margin-bottom:28px; }
+    .stat-card { background:var(--bg-card); border-radius:var(--radius-lg); padding:24px; border:1px solid var(--border-color); transition:var(--transition); position:relative; overflow:hidden; }
+    .stat-card:hover { transform:translateY(-4px); box-shadow:var(--shadow-lg); }
+    .stat-card .stat-icon { width:48px; height:48px; border-radius:14px; display:flex; align-items:center; justify-content:center; font-size:20px; margin-bottom:16px; transition:transform 0.3s; }
+    .stat-card:hover .stat-icon { transform:scale(1.1) rotate(-5deg); }
+    .stat-card .stat-icon.purple { background:linear-gradient(135deg,#e0e7ff,#c7d2fe); color:#4338ca; }
+    .stat-card .stat-icon.blue { background:linear-gradient(135deg,#dbeafe,#bfdbfe); color:#1d4ed8; }
+    .stat-card .stat-icon.green { background:linear-gradient(135deg,#d1fae5,#a7f3d0); color:#047857; }
+    .stat-card .stat-icon.orange { background:linear-gradient(135deg,#fef3c7,#fde68a); color:#b45309; }
+    .stat-card .stat-icon.red { background:linear-gradient(135deg,#fee2e2,#fecaca); color:#b91c1c; }
+    .stat-card .stat-label { font-size:12px; font-weight:600; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.5px; }
+    .stat-card .stat-value { font-size:32px; font-weight:800; margin:6px 0; font-family:'Space Grotesk',sans-serif; letter-spacing:-1px; }
+    .stat-card .stat-change { font-size:12px; font-weight:600; display:flex; align-items:center; gap:4px; }
+    .stat-card .stat-change.up { color:var(--success); } .stat-card .stat-change.down { color:var(--danger); }
+
+    .grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:24px; }
+    .grid-3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:24px; }
+    .grid-4 { display:grid; grid-template-columns:repeat(4,1fr); gap:24px; }
+
+    .table-container { overflow-x:auto; border-radius:var(--radius); border:1px solid var(--border-color); }
+    .table-container table { width:100%; border-collapse:separate; border-spacing:0; }
+    .table-container th { text-align:left; padding:14px 20px; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.8px; color:var(--text-secondary); background:var(--bg-primary); border-bottom:2px solid var(--border-color); position:sticky; top:0; z-index:1; }
+    .table-container td { padding:14px 20px; border-bottom:1px solid var(--border-light); font-size:13.5px; font-weight:500; }
+    .table-container tr { transition:background 0.2s; }
+    .table-container tbody tr:hover td { background:var(--bg-primary); }
+    .table-container tbody tr:last-child td { border-bottom:none; }
+    .table-container .td-name { display:flex; align-items:center; gap:12px; }
+    .table-container .td-avatar { width:36px; height:36px; border-radius:50%; background:var(--primary-gradient); display:flex; align-items:center; justify-content:center; color:white; font-weight:700; font-size:13px; flex-shrink:0; }
+    .table-container .td-info { display:flex; flex-direction:column; }
+    .table-container .td-info .name { font-weight:700; color:var(--text-primary); }
+    .table-container .td-info .sub { font-size:12px; color:var(--text-light); font-weight:500; }
+
+    .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:2000; display:flex; align-items:center; justify-content:center; padding:20px; backdrop-filter:blur(8px); animation:fadeIn 0.3s; }
+    .modal-content { background:var(--bg-card); border-radius:var(--radius-lg); max-width:600px; width:100%; max-height:90vh; overflow-y:auto; box-shadow:var(--shadow-xl); animation:scaleIn 0.3s; border:1px solid var(--border-color); }
+    .modal-header { padding:24px 28px; border-bottom:1px solid var(--border-color); display:flex; justify-content:space-between; align-items:center; }
+    .modal-header h3 { font-size:18px; font-weight:700; }
+    .modal-body { padding:28px; }
+    .modal-footer { padding:20px 28px; border-top:1px solid var(--border-color); display:flex; justify-content:flex-end; gap:10px; }
+
+    .tabs { display:flex; gap:4px; padding:4px; background:var(--bg-primary); border-radius:var(--radius-full); width:fit-content; margin-bottom:24px; border:1px solid var(--border-color); }
+    .tab { padding:8px 20px; border-radius:var(--radius-full); border:none; background:transparent; font-family:'Inter',sans-serif; font-size:13px; font-weight:600; color:var(--text-secondary); cursor:pointer; transition:var(--transition); }
+    .tab.active { background:var(--bg-card); color:var(--primary); box-shadow:var(--shadow-sm); }
+    .tab:hover:not(.active) { color:var(--text-primary); }
+
+    .progress-bar { height:8px; background:var(--border-color); border-radius:var(--radius-full); overflow:hidden; position:relative; }
+    .progress-bar .fill { height:100%; border-radius:var(--radius-full); transition:width 1s cubic-bezier(0.4,0,0.2,1); position:relative; }
+    .progress-bar .fill::after { content:''; position:absolute; inset:0; background:linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent); animation:shimmer 2s infinite; }
+    .progress-bar .fill.primary { background:linear-gradient(90deg, var(--primary), var(--primary-light)); }
+    .progress-bar .fill.success { background:linear-gradient(90deg, #10b981, #34d399); }
+    .progress-bar .fill.warning { background:linear-gradient(90deg, #f59e0b, #fbbf24); }
+    .progress-bar .fill.danger { background:linear-gradient(90deg, #ef4444, #f87171); }
+
+    .chat-container { display:flex; flex-direction:column; gap:16px; }
+    .chat-message { display:flex; gap:12px; animation:fadeIn 0.3s; }
+    .chat-message.user { flex-direction:row-reverse; }
+    .chat-message .avatar { width:36px; height:36px; border-radius:50%; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:14px; box-shadow:var(--shadow-sm); }
+    .chat-message .avatar.ai { background:var(--primary-gradient); color:white; }
+    .chat-message .avatar.user { background:linear-gradient(135deg,var(--secondary),#38bdf8); color:white; }
+    .chat-message .bubble { max-width:75%; padding:14px 18px; border-radius:18px; font-size:14px; line-height:1.7; box-shadow:var(--shadow-sm); }
+    .chat-message.user .bubble { background:var(--primary); color:white; border-bottom-right-radius:4px; }
+    .chat-message.ai .bubble { background:var(--bg-primary); border:1.5px solid var(--border-color); border-bottom-left-radius:4px; color:var(--text-primary); }
+    .typing-indicator { display:flex; gap:4px; padding:12px 16px; }
+    .typing-indicator span { width:8px; height:8px; background:var(--primary-light); border-radius:50%; animation:typingBounce 1.4s infinite ease-in-out both; }
+    .typing-indicator span:nth-child(1) { animation-delay:-0.32s; }
+    .typing-indicator span:nth-child(2) { animation-delay:-0.16s; }
+
+    .qr-container { display:flex; flex-direction:column; align-items:center; padding:32px; background:var(--bg-primary); border-radius:var(--radius-lg); border:2px dashed var(--border-color); transition:var(--transition); }
+    .qr-container:hover { border-color:var(--primary-light); background:rgba(99,102,241,0.02); }
+    .qr-placeholder { width:200px; height:200px; background:var(--primary-gradient); border-radius:16px; display:flex; align-items:center; justify-content:center; font-size:64px; color:white; box-shadow:var(--shadow-glow); position:relative; overflow:hidden; }
+    .qr-placeholder::before { content:''; position:absolute; inset:0; background:repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,0.05) 10px, rgba(255,255,255,0.05) 20px); }
+    .qr-timer { font-size:28px; font-weight:800; font-family:'Space Grotesk',sans-serif; color:var(--primary); margin:16px 0; }
+
+    .action-card { border-left:4px solid var(--warning); padding:18px; background:var(--bg-primary); border-radius:var(--radius); margin-bottom:12px; transition:var(--transition); position:relative; overflow:hidden; }
+    .action-card:hover { transform:translateX(4px); box-shadow:var(--shadow-md); }
+    .action-card.critical { border-left-color:var(--danger); background:linear-gradient(90deg, rgba(239,68,68,0.05), transparent); }
+    .action-card.attention { border-left-color:var(--warning); background:linear-gradient(90deg, rgba(245,158,11,0.05), transparent); }
+    .action-card.success { border-left-color:var(--success); background:linear-gradient(90deg, rgba(16,185,129,0.05), transparent); }
+    .action-card .action-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:6px; }
+    .action-card .action-reason { font-size:13px; color:var(--text-secondary); margin:6px 0; }
+    .action-card .action-evidence { font-size:12px; color:var(--text-light); font-weight:500; }
+    .action-card .action-buttons { display:flex; gap:8px; margin-top:12px; }
+
+    .calendar-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:8px; }
+    .calendar-day-header { text-align:center; font-size:11px; font-weight:700; color:var(--text-light); text-transform:uppercase; padding:8px; }
+    .calendar-day { aspect-ratio:1; border-radius:var(--radius); border:1.5px solid var(--border-color); background:var(--bg-card); display:flex; flex-direction:column; align-items:center; justify-content:center; cursor:pointer; transition:var(--transition); font-size:14px; font-weight:600; position:relative; }
+    .calendar-day:hover { border-color:var(--primary-light); transform:scale(1.05); z-index:1; box-shadow:var(--shadow-md); }
+    .calendar-day.active { background:var(--primary-gradient); color:white; border-color:transparent; box-shadow:var(--shadow-glow); }
+    .calendar-day.today { border-color:var(--primary); color:var(--primary); }
+    .calendar-day .dot { width:5px; height:5px; border-radius:50%; margin-top:4px; }
+    .calendar-day .dot.event { background:var(--primary); }
+    .calendar-day .dot.attendance { background:var(--success); }
+    .calendar-day .dot.absent { background:var(--danger); }
+
+    .notif-panel { position:fixed; top:0; right:-440px; width:420px; height:100vh; background:var(--bg-card); box-shadow:var(--shadow-xl); z-index:1000; transition:right 0.4s cubic-bezier(0.4,0,0.2,1); overflow-y:auto; padding:28px; border-left:1px solid var(--border-color); }
+    .notif-panel.open { right:0; }
+    .notif-panel .notif-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:24px; }
+    .notif-panel .notif-header h3 { font-size:18px; font-weight:800; display:flex; align-items:center; gap:10px; }
+    .notif-item { padding:16px; border-radius:var(--radius); margin-bottom:10px; background:var(--bg-primary); border:1px solid var(--border-light); transition:var(--transition); cursor:pointer; display:flex; gap:14px; align-items:flex-start; }
+    .notif-item:hover { background:var(--bg-card); border-color:var(--border-color); transform:translateX(-4px); box-shadow:var(--shadow-sm); }
+    .notif-item.unread { border-left:3px solid var(--primary); }
+    .notif-item .notif-icon { width:40px; height:40px; border-radius:12px; display:flex; align-items:center; justify-content:center; flex-shrink:0; font-size:16px; }
+    .notif-item .notif-icon.info { background:#dbeafe; color:#1e40af; }
+    .notif-item .notif-icon.success { background:#d1fae5; color:#065f46; }
+    .notif-item .notif-icon.warning { background:#fef3c7; color:#92400e; }
+    .notif-item .notif-icon.danger { background:#fee2e2; color:#991b1b; }
+    .notif-item .notif-content { flex:1; }
+    .notif-item .notif-content .title { font-size:14px; font-weight:700; margin-bottom:3px; }
+    .notif-item .notif-content .desc { font-size:13px; color:var(--text-secondary); line-height:1.5; }
+    .notif-item .notif-content .time { font-size:11px; color:var(--text-light); margin-top:6px; font-weight:500; }
+
+    .toast-container { position:fixed; bottom:28px; right:28px; z-index:3000; display:flex; flex-direction:column; gap:10px; pointer-events:none; }
+    .toast { padding:16px 22px; border-radius:var(--radius-lg); background:var(--bg-card); border:1px solid var(--border-color); box-shadow:var(--shadow-xl); min-width:320px; max-width:440px; display:flex; align-items:center; gap:14px; animation:slideUp 0.4s cubic-bezier(0.4,0,0.2,1); pointer-events:all; position:relative; overflow:hidden; }
+    .toast::before { content:''; position:absolute; left:0; top:0; bottom:0; width:4px; }
+    .toast-success::before { background:var(--success); } .toast-error::before { background:var(--danger); }
+    .toast-warning::before { background:var(--warning); } .toast-info::before { background:var(--info); }
+    .toast .toast-icon { width:36px; height:36px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:16px; flex-shrink:0; }
+    .toast-success .toast-icon { background:#d1fae5; color:#065f46; }
+    .toast-error .toast-icon { background:#fee2e2; color:#991b1b; }
+    .toast-warning .toast-icon { background:#fef3c7; color:#92400e; }
+    .toast-info .toast-icon { background:#dbeafe; color:#1e40af; }
+    .toast .toast-content { flex:1; }
+    .toast .toast-title { font-size:14px; font-weight:700; margin-bottom:2px; }
+    .toast .toast-desc { font-size:13px; color:var(--text-secondary); }
+    .toast .toast-close { background:none; border:none; color:var(--text-light); cursor:pointer; font-size:16px; padding:4px; border-radius:6px; transition:var(--transition); }
+    .toast .toast-close:hover { background:var(--bg-primary); color:var(--text-primary); }
+
+    .empty-state { text-align:center; padding:60px 20px; }
+    .empty-state .empty-icon { font-size:56px; color:var(--text-light); margin-bottom:16px; opacity:0.5; }
+    .empty-state h4 { font-size:18px; font-weight:700; color:var(--text-primary); margin-bottom:6px; }
+    .empty-state p { font-size:14px; color:var(--text-secondary); max-width:300px; margin:0 auto; }
+
+    @media (max-width:1024px) { .grid-4 { grid-template-columns:repeat(2,1fr); } }
+    @media (max-width:768px) {
+      .sidebar { position:fixed; left:-300px; top:0; bottom:0; width:280px; z-index:1000; box-shadow:var(--shadow-xl); }
+      .sidebar.open { left:0; }
+      .topbar-left .menu-toggle { display:flex; align-items:center; justify-content:center; }
+      .topbar-right .search-bar { display:none; }
+      .grid-2, .grid-3, .grid-4 { grid-template-columns:1fr; }
+      .stats-grid { grid-template-columns:1fr 1fr; }
+      .login-box { padding:32px 24px; }
+      .notif-panel { width:100%; right:-100%; }
+      .view-switcher { display:none; }
+    }
+    @media (max-width:480px) { .stats-grid { grid-template-columns:1fr; } .topbar { padding:0 16px; } .page-content { padding:16px; } }
+  </style>
+<base target="_blank">
+</head>
+<body>
+  <div id="root"></div>
+  <div id="toast-container" class="toast-container"></div>
+  <div id="notif-panel" class="notif-panel">
+    <div class="notif-header"><h3><i class="fas fa-bell" style="color:var(--primary)"></i> Notifications</h3><button class="btn btn-ghost btn-sm" onclick="closeNotifications()"><i class="fas fa-times"></i></button></div>
+    <div id="notif-list"></div>
+  </div>
+  <div id="overlay" class="modal-overlay" style="display:none;z-index:999" onclick="closeNotifications()"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useRef, useCallback, useMemo } = React;
+
+    // ===================== ADVANCED MOCK DATABASE =====================
+    const DB = {
+      users: [], students: [], teachers: [], admins: [], attendance: [], curriculum: [],
+      activities: [], quizzes: [], quizAttempts: [], interventions: [], notifications: [],
+      currentUser: null, currentRole: null, qrSessions: [], knowledgeDocs: [], subjects: [],
+      timetable: [], classes: [], departments: [], assignments: [], submissions: [],
+      messages: [], events: [], fees: [], library: [], grades: [], announcements: [],
+      academicCalendar: [], settings: { institutionName: 'EDUTrack University', semester: 'Fall 2026' }
+    };
+
+    function seedDatabase() {
+      const now = new Date();
+      DB.users = [
+        { id:'u1', name:'Dr. Priya Sharma', email:'priya@edutrack.edu', role:'TEACHER', password:'password', avatar:null, phone:'+91-9876543210', joined:'2023-06-15' },
+        { id:'u2', name:'Prof. Rahul Mehta', email:'rahul@edutrack.edu', role:'TEACHER', password:'password', avatar:null, phone:'+91-9876543211', joined:'2022-01-10' },
+        { id:'u3', name:'Aarav Shah', email:'aarav@student.edu', role:'STUDENT', password:'password', avatar:null, phone:'+91-9876543212', joined:'2023-08-01' },
+        { id:'u4', name:'Riya Patel', email:'riya@student.edu', role:'STUDENT', password:'password', avatar:null, phone:'+91-9876543213', joined:'2023-08-01' },
+        { id:'u5', name:'Vivaan Mehta', email:'vivaan@student.edu', role:'STUDENT', password:'password', avatar:null, phone:'+91-9876543214', joined:'2023-08-01' },
+        { id:'u6', name:'Anaya Desai', email:'anaya@student.edu', role:'STUDENT', password:'password', avatar:null, phone:'+91-9876543215', joined:'2023-08-01' },
+        { id:'u7', name:'Aditya Joshi', email:'aditya@student.edu', role:'STUDENT', password:'password', avatar:null, phone:'+91-9876543216', joined:'2023-08-01' },
+        { id:'u8', name:'Kavya Shah', email:'kavya@student.edu', role:'STUDENT', password:'password', avatar:null, phone:'+91-9876543217', joined:'2023-08-01' },
+        { id:'u9', name:'Dhruv Patel', email:'dhruv@student.edu', role:'STUDENT', password:'password', avatar:null, phone:'+91-9876543218', joined:'2023-08-01' },
+        { id:'u10', name:'Ishaan Kumar', email:'ishaan@student.edu', role:'STUDENT', password:'password', avatar:null, phone:'+91-9876543219', joined:'2023-08-01' },
+        { id:'u11', name:'Admin User', email:'admin@edutrack.edu', role:'ADMIN', password:'password', avatar:null, phone:'+91-9876543220', joined:'2020-01-01' },
+        { id:'u12', name:'Dr. Sneha Gupta', email:'sneha@edutrack.edu', role:'TEACHER', password:'password', avatar:null, phone:'+91-9876543221', joined:'2023-01-15' }
+      ];
+      DB.departments = [
+        { id:'d1', name:'Computer Science', code:'CSE', hod:'Dr. Priya Sharma' },
+        { id:'d2', name:'Electronics & Communication', code:'ECE', hod:'Prof. Rahul Mehta' },
+        { id:'d3', name:'Mechanical Engineering', code:'ME', hod:'Dr. Sneha Gupta' }
+      ];
+      DB.classes = [
+        { id:'cls1', name:'CSE-5A', department:'d1', semester:5, section:'A', capacity:60 },
+        { id:'cls2', name:'CSE-6A', department:'d1', semester:6, section:'A', capacity:60 },
+        { id:'cls3', name:'ECE-4A', department:'d2', semester:4, section:'A', capacity:50 },
+        { id:'cls4', name:'CSE-5B', department:'d1', semester:5, section:'B', capacity:55 }
+      ];
+      DB.students = [
+        { id:'s1', userId:'u3', name:'Aarav Shah', rollNo:'CSE2023001', classId:'cls1', department:'d1', semester:5, attendance:68, curriculumProgress:72, quizAverage:48, cgpa:6.8, backlogs:1, gender:'Male', dob:'2002-05-15', address:'Mumbai, Maharashtra', guardian:'Rajesh Shah', guardianPhone:'+91-9876540001' },
+        { id:'s2', userId:'u4', name:'Riya Patel', rollNo:'CSE2023002', classId:'cls1', department:'d1', semester:5, attendance:94, curriculumProgress:88, quizAverage:85, cgpa:8.9, backlogs:0, gender:'Female', dob:'2002-08-22', address:'Ahmedabad, Gujarat', guardian:'Meena Patel', guardianPhone:'+91-9876540002' },
+        { id:'s3', userId:'u5', name:'Vivaan Mehta', rollNo:'CSE2023003', classId:'cls1', department:'d1', semester:5, attendance:86, curriculumProgress:79, quizAverage:76, cgpa:7.5, backlogs:0, gender:'Male', dob:'2002-03-10', address:'Pune, Maharashtra', guardian:'Suresh Mehta', guardianPhone:'+91-9876540003' },
+        { id:'s4', userId:'u6', name:'Anaya Desai', rollNo:'CSE2023004', classId:'cls1', department:'d1', semester:5, attendance:91, curriculumProgress:83, quizAverage:81, cgpa:8.2, backlogs:0, gender:'Female', dob:'2002-11-30', address:'Surat, Gujarat', guardian:'Harsh Desai', guardianPhone:'+91-9876540004' },
+        { id:'s5', userId:'u7', name:'Aditya Joshi', rollNo:'CSE2023005', classId:'cls1', department:'d1', semester:5, attendance:73, curriculumProgress:65, quizAverage:62, cgpa:6.5, backlogs:2, gender:'Male', dob:'2001-09-18', address:'Nagpur, Maharashtra', guardian:'Priya Joshi', guardianPhone:'+91-9876540005' },
+        { id:'s6', userId:'u8', name:'Kavya Shah', rollNo:'CSE2023006', classId:'cls1', department:'d1', semester:5, attendance:89, curriculumProgress:91, quizAverage:79, cgpa:8.1, backlogs:0, gender:'Female', dob:'2002-01-25', address:'Rajkot, Gujarat', guardian:'Amit Shah', guardianPhone:'+91-9876540006' },
+        { id:'s7', userId:'u9', name:'Dhruv Patel', rollNo:'CSE2023007', classId:'cls1', department:'d1', semester:5, attendance:77, curriculumProgress:71, quizAverage:68, cgpa:7.0, backlogs:1, gender:'Male', dob:'2002-07-08', address:'Vadodara, Gujarat', guardian:'Dinesh Patel', guardianPhone:'+91-9876540007' },
+        { id:'s8', userId:'u10', name:'Ishaan Kumar', rollNo:'CSE2023008', classId:'cls1', department:'d1', semester:5, attendance:82, curriculumProgress:75, quizAverage:70, cgpa:7.2, backlogs:0, gender:'Male', dob:'2002-04-12', address:'Indore, MP', guardian:'Ravi Kumar', guardianPhone:'+91-9876540008' }
+      ];
+      DB.teachers = [
+        { id:'t1', userId:'u1', name:'Dr. Priya Sharma', department:'d1', specialization:'Database Systems', qualification:'Ph.D. IIT Bombay', experience:12, subjects:['sub1','sub3'] },
+        { id:'t2', userId:'u2', name:'Prof. Rahul Mehta', department:'d1', specialization:'Cloud Computing', qualification:'Ph.D. IIT Delhi', experience:8, subjects:['sub2','sub4'] },
+        { id:'t3', userId:'u12', name:'Dr. Sneha Gupta', department:'d3', specialization:'Thermodynamics', qualification:'Ph.D. NIT Trichy', experience:10, subjects:['sub5'] }
+      ];
+      DB.admins = [{ id:'a1', userId:'u11', name:'Admin User', department:'Administration', designation:'System Administrator' }];
+      DB.subjects = [
+        { id:'sub1', name:'Database Management Systems', code:'DBMS101', department:'d1', semester:5, teacherId:'t1', credits:4 },
+        { id:'sub2', name:'Cloud Computing', code:'CLD201', department:'d1', semester:5, teacherId:'t2', credits:3 },
+        { id:'sub3', name:'Operating Systems', code:'OS301', department:'d1', semester:5, teacherId:'t1', credits:4 },
+        { id:'sub4', name:'Computer Graphics', code:'CG401', department:'d1', semester:5, teacherId:'t2', credits:3 },
+        { id:'sub5', name:'Fluid Mechanics', code:'FM101', department:'d3', semester:5, teacherId:'t3', credits:4 }
+      ];
+      DB.curriculum = [
+        { id:'c1', subjectId:'sub1', title:'ER Model & Relational Algebra', unit:1, order:1, description:'Entity-Relationship modeling, relational algebra operations', duration:'2 weeks', resources:3 },
+        { id:'c2', subjectId:'sub1', title:'Normalization & Functional Dependencies', unit:1, order:2, description:'Database normalization up to BCNF, functional dependencies', duration:'2 weeks', resources:5 },
+        { id:'c3', subjectId:'sub1', title:'SQL Fundamentals & DDL', unit:2, order:1, description:'Basic SQL queries, CREATE, ALTER, DROP operations', duration:'1 week', resources:4 },
+        { id:'c4', subjectId:'sub1', title:'Advanced SQL & Joins', unit:2, order:2, description:'INNER, LEFT, RIGHT, FULL joins, subqueries, views', duration:'2 weeks', resources:6 },
+        { id:'c5', subjectId:'sub1', title:'Transaction Management', unit:3, order:1, description:'ACID properties, concurrency control, locking', duration:'2 weeks', resources:4 },
+        { id:'c6', subjectId:'sub2', title:'Cloud Fundamentals & Service Models', unit:1, order:1, description:'Introduction to cloud computing, IaaS, PaaS, SaaS', duration:'1 week', resources:3 },
+        { id:'c7', subjectId:'sub2', title:'Virtualization & Containerization', unit:1, order:2, description:'VMs, Docker, Kubernetes basics', duration:'2 weeks', resources:5 },
+        { id:'c8', subjectId:'sub2', title:'AWS Core Services', unit:2, order:1, description:'EC2, S3, RDS, Lambda fundamentals', duration:'2 weeks', resources:6 },
+        { id:'c9', subjectId:'sub3', title:'Process Management', unit:1, order:1, description:'Process states, PCB, context switching', duration:'1 week', resources:3 },
+        { id:'c10', subjectId:'sub3', title:'CPU Scheduling Algorithms', unit:2, order:1, description:'FCFS, SJF, RR, Priority scheduling', duration:'2 weeks', resources:5 }
+      ];
+      // Attendance seed
+      for (let day=0; day<30; day++) {
+        const date = new Date(now); date.setDate(date.getDate()-day); const dateStr = date.toISOString().split('T')[0];
+        if (date.getDay()===0 || date.getDay()===6) continue;
+        for (const s of DB.students) {
+          const base = s.attendance || 80; const isPresent = Math.random()*100 < base;
+          let status = isPresent ? 'PRESENT' : 'ABSENT';
+          if (isPresent && Math.random()<0.1) status = 'LATE';
+          DB.attendance.push({ id:`att-${s.id}-${dateStr}-${Math.random()}`, studentId:s.id, subjectId:DB.subjects[Math.floor(Math.random()*4)].id, date:dateStr, status, timestamp:date.toISOString(), markedBy:Math.random()>0.5?'t1':'t2' });
+        }
+      }
+      DB.quizzes = [
+        { id:'q1', title:'SQL Joins Mastery', subjectId:'sub1', topic:'SQL Joins', difficulty:'Medium', marks:25, duration:20, published:true, questions:[
+          {id:'q1q1',text:'Which SQL join returns all rows from the left table and matched rows from the right?',options:['INNER JOIN','LEFT JOIN','RIGHT JOIN','FULL JOIN'],answer:1},
+          {id:'q1q2',text:'What does ACID stand for in database transactions?',options:['Atomicity, Consistency, Isolation, Durability','Accuracy, Completeness, Integrity, Durability','Atomicity, Completeness, Isolation, Data','All, Consistency, Integrity, Data'],answer:0},
+          {id:'q1q3',text:'Which normalization form removes transitive dependencies?',options:['1NF','2NF','3NF','BCNF'],answer:2},
+          {id:'q1q4',text:'What is the primary purpose of an index?',options:['Speed up queries','Ensure data integrity','Reduce storage','Encrypt data'],answer:0},
+          {id:'q1q5',text:'Which SQL clause is used to filter grouped data?',options:['WHERE','HAVING','GROUP BY','ORDER BY'],answer:1}
+        ]},
+        { id:'q2', title:'Cloud Architecture Basics', subjectId:'sub2', topic:'Cloud Computing', difficulty:'Easy', marks:20, duration:15, published:true, questions:[
+          {id:'q2q1',text:'Which service model provides virtual machines?',options:['SaaS','PaaS','IaaS','DaaS'],answer:2},
+          {id:'q2q2',text:'What is the main benefit of auto-scaling?',options:['Cost optimization','Better security','Data backup','Faster development'],answer:0}
+        ]}
+      ];
+      DB.quizAttempts = [
+        { id:'qa1', studentId:'s1', quizId:'q1', score:48, total:25, date:'2026-08-10', timeTaken:18 },
+        { id:'qa2', studentId:'s2', quizId:'q1', score:85, total:25, date:'2026-08-10', timeTaken:15 },
+        { id:'qa3', studentId:'s3', quizId:'q1', score:65, total:25, date:'2026-08-10', timeTaken:20 },
+        { id:'qa4', studentId:'s1', quizId:'q1', score:72, total:25, date:'2026-08-15', timeTaken:16 },
+        { id:'qa5', studentId:'s4', quizId:'q1', score:90, total:25, date:'2026-08-10', timeTaken:14 },
+        { id:'qa6', studentId:'s5', quizId:'q1', score:55, total:25, date:'2026-08-10', timeTaken:19 }
+      ];
+      DB.assignments = [
+        { id:'as1', title:'ER Diagram Design', subjectId:'sub1', teacherId:'t1', classId:'cls1', description:'Design ER diagram for a university management system', dueDate:'2026-08-25', maxMarks:50, status:'ACTIVE', createdAt:'2026-08-01' },
+        { id:'as2', title:'AWS Architecture Setup', subjectId:'sub2', teacherId:'t2', classId:'cls1', description:'Set up a 3-tier architecture on AWS free tier', dueDate:'2026-08-28', maxMarks:75, status:'ACTIVE', createdAt:'2026-08-05' },
+        { id:'as3', title:'Process Scheduling Simulation', subjectId:'sub3', teacherId:'t1', classId:'cls1', description:'Simulate FCFS, SJF, and Round Robin algorithms', dueDate:'2026-08-20', maxMarks:60, status:'CLOSED', createdAt:'2026-07-25' }
+      ];
+      DB.submissions = [
+        { id:'subm1', assignmentId:'as3', studentId:'s2', fileName:'scheduling_sim.zip', marks:55, feedback:'Good implementation. Improve documentation.', submittedAt:'2026-08-18', status:'GRADED' },
+        { id:'subm2', assignmentId:'as3', studentId:'s1', fileName:'process_sched.zip', marks:42, feedback:'Basic implementation. Missing Round Robin.', submittedAt:'2026-08-19', status:'GRADED' },
+        { id:'subm3', assignmentId:'as1', studentId:'s3', fileName:'er_diagram.pdf', marks:null, feedback:null, submittedAt:'2026-08-10', status:'SUBMITTED' }
+      ];
+      DB.grades = [
+        { id:'g1', studentId:'s1', subjectId:'sub1', internal1:18, internal2:15, assignment:12, midTerm:28, final:null, grade:null },
+        { id:'g2', studentId:'s2', subjectId:'sub1', internal1:22, internal2:24, assignment:18, midTerm:35, final:null, grade:null },
+        { id:'g3', studentId:'s1', subjectId:'sub2', internal1:16, internal2:14, assignment:10, midTerm:25, final:null, grade:null }
+      ];
+      DB.fees = [
+        { id:'f1', studentId:'s1', semester:5, tuition:85000, library:2000, lab:5000, hostel:45000, total:137000, paid:100000, due:37000, status:'PARTIAL', lastPaid:'2026-07-15' },
+        { id:'f2', studentId:'s2', semester:5, tuition:85000, library:2000, lab:5000, hostel:45000, total:137000, paid:137000, due:0, status:'PAID', lastPaid:'2026-07-10' }
+      ];
+      DB.library = [
+        { id:'b1', title:'Database System Concepts', author:'Silberschatz', isbn:'978-0073523323', category:'Computer Science', available:true, total:5, issued:2 },
+        { id:'b2', title:'Cloud Computing: Concepts', author:'Buyya', isbn:'978-0128053959', category:'Computer Science', available:true, total:3, issued:1 },
+        { id:'b3', title:'Operating System Concepts', author:'Silberschatz', isbn:'978-1118063330', category:'Computer Science', available:false, total:4, issued:4 }
+      ];
+      DB.knowledgeDocs = [
+        { id:'kd1', title:'SQL Joins Explained', topic:'SQL Joins', subject:'Database Management Systems', content:'SQL joins combine rows from two or more tables. INNER JOIN returns only matching rows. LEFT JOIN returns all rows from the left table and matched rows from right. RIGHT JOIN returns all rows from right. FULL JOIN returns all rows when there is a match in either table.', source:'Official Curriculum' },
+        { id:'kd2', title:'Database Normalization', topic:'Normalization', subject:'Database Management Systems', content:'Normalization reduces redundancy. 1NF removes repeating groups. 2NF removes partial dependencies. 3NF removes transitive dependencies. BCNF ensures every determinant is a candidate key.', source:'Official Curriculum' },
+        { id:'kd3', title:'Cloud Service Models', topic:'Cloud Computing', subject:'Cloud Computing', content:'IaaS provides virtualized computing resources. PaaS provides development platforms. SaaS provides software applications. FaaS provides serverless computing capabilities.', source:'AWS Documentation' },
+        { id:'kd4', title:'CPU Scheduling', topic:'Scheduling', subject:'Operating Systems', content:'FCFS is non-preemptive and simple. SJF minimizes average waiting time. Round Robin uses time quantum. Priority scheduling may cause starvation.', source:'Operating Systems Concepts' }
+      ];
+      DB.timetable = [
+        { id:'tt1', classId:'cls1', day:'Monday', subjectId:'sub1', teacherId:'t1', time:'09:00-10:30', room:'L-301', type:'LECTURE' },
+        { id:'tt2', classId:'cls1', day:'Monday', subjectId:'sub2', teacherId:'t2', time:'10:45-12:15', room:'L-302', type:'LECTURE' },
+        { id:'tt3', classId:'cls1', day:'Monday', subjectId:'sub3', teacherId:'t1', time:'13:00-14:30', room:'Lab-1', type:'LAB' },
+        { id:'tt4', classId:'cls1', day:'Tuesday', subjectId:'sub4', teacherId:'t2', time:'09:00-10:30', room:'L-301', type:'LECTURE' },
+        { id:'tt5', classId:'cls1', day:'Tuesday', subjectId:'sub1', teacherId:'t1', time:'10:45-12:15', room:'L-301', type:'LECTURE' },
+        { id:'tt6', classId:'cls1', day:'Wednesday', subjectId:'sub2', teacherId:'t2', time:'09:00-10:30', room:'L-302', type:'LECTURE' },
+        { id:'tt7', classId:'cls1', day:'Wednesday', subjectId:'sub3', teacherId:'t1', time:'10:45-12:15', room:'L-301', type:'LECTURE' },
+        { id:'tt8', classId:'cls1', day:'Thursday', subjectId:'sub4', teacherId:'t2', time:'09:00-10:30', room:'Lab-2', type:'LAB' },
+        { id:'tt9', classId:'cls1', day:'Thursday', subjectId:'sub1', teacherId:'t1', time:'10:45-12:15', room:'L-301', type:'LECTURE' },
+        { id:'tt10', classId:'cls1', day:'Friday', subjectId:'sub2', teacherId:'t2', time:'09:00-10:30', room:'L-302', type:'LECTURE' },
+        { id:'tt11', classId:'cls1', day:'Friday', subjectId:'sub3', teacherId:'t1', time:'10:45-12:15', room:'L-301', type:'LECTURE' }
+      ];
+      DB.interventions = [
+        { id:'int1', studentId:'s1', studentName:'Aarav Shah', teacherId:'t1', reason:'Low SQL JOIN performance (48%) and attendance below threshold', suggestedAction:'Assign SQL JOIN practice + revision', actionTaken:'Assigned SQL JOIN practice quiz', status:'IN_PROGRESS', assignedAt:'2026-08-12', beforeScore:48, afterScore:null, evidence:'Quiz score: 48%, Attendance: 68%', createdAt:new Date(now.setDate(now.getDate()-5)).toISOString() },
+        { id:'int2', studentId:'s5', studentName:'Aditya Joshi', teacherId:'t1', reason:'Multiple backlogs and low attendance (73%)', suggestedAction:'Academic counseling + attendance improvement plan', actionTaken:'Counseling session scheduled', status:'PENDING', assignedAt:'2026-08-18', beforeScore:62, afterScore:null, evidence:'2 backlogs, Attendance: 73%', createdAt:new Date(now.setDate(now.getDate()-2)).toISOString() }
+      ];
+      DB.announcements = [
+        { id:'an1', title:'Mid-Term Examination Schedule', content:'Mid-term exams will commence from September 1st. Timetable will be published soon.', audience:'ALL', priority:'HIGH', createdAt:'2026-08-15', createdBy:'u11' },
+        { id:'an2', title:'Workshop on Cloud Architecture', content:'AWS certified workshop on September 5th. Register before August 30th.', audience:'STUDENT', priority:'MEDIUM', createdAt:'2026-08-18', createdBy:'u2' },
+        { id:'an3', title:'Faculty Meeting', content:'All faculty members are requested to attend the meeting on August 25th at 2 PM.', audience:'TEACHER', priority:'HIGH', createdAt:'2026-08-19', createdBy:'u11' }
+      ];
+      DB.events = [
+        { id:'ev1', title:'Independence Day Celebration', date:'2026-08-15', type:'HOLIDAY', description:'National holiday' },
+        { id:'ev2', title:'SQL Workshop', date:'2026-08-22', type:'EVENT', description:'Advanced SQL workshop by Dr. Priya Sharma' },
+        { id:'ev3', title:'Mid-Term Exams Begin', date:'2026-09-01', type:'EXAM', description:'Semester mid-term examinations' },
+        { id:'ev4', title:'Project Submission', date:'2026-08-28', type:'DEADLINE', description:'Final project submission for DBMS' }
+      ];
+      DB.notifications = [
+        { id:'n1', userId:'u3', title:'Quiz Published', message:'SQL Joins Mastery Quiz is now available. Duration: 20 mins', type:'ASSESSMENT', read:false, link:'#quiz', createdAt:new Date(now.setHours(now.getHours()-2)).toISOString() },
+        { id:'n2', userId:'u3', title:'Attendance Alert', message:'Your attendance is at 68%, below the required 75%', type:'ATTENDANCE', read:false, link:'#attendance', createdAt:new Date(now.setHours(now.getHours()-4)).toISOString() },
+        { id:'n3', userId:'u3', title:'Assignment Due Soon', message:'ER Diagram Design assignment is due on Aug 25', type:'ASSIGNMENT', read:false, link:'#assignments', createdAt:new Date(now.setHours(now.getHours()-6)).toISOString() },
+        { id:'n4', userId:'u1', title:'New Intervention', message:'AI detected 2 students needing attention in your class', type:'INTERVENTION', read:false, link:'#action-center', createdAt:new Date(now.setHours(now.getHours()-1)).toISOString() },
+        { id:'n5', userId:'u11', title:'System Update', message:'EDUTrack Pro v3.0 deployed successfully', type:'SYSTEM', read:true, link:'#settings', createdAt:new Date(now.setHours(now.getHours()-24)).toISOString() }
+      ];
+      DB.messages = [
+        { id:'m1', from:'u1', to:'u3', subject:'Regarding your attendance', content:'Hi Aarav, your attendance is concerning. Please meet me during office hours.', timestamp:new Date(now.setHours(now.getHours()-3)).toISOString(), read:false },
+        { id:'m2', from:'u3', to:'u1', subject:'Re: Regarding your attendance', content:'Sure ma\'am, I will meet you tomorrow at 2 PM.', timestamp:new Date(now.setHours(now.getHours()-2)).toISOString(), read:true }
+      ];
+    }
+    seedDatabase();
+
+    // ===================== API LAYER =====================
+    const API = {
+      login(email,password,role) {
+        const user = DB.users.find(u => u.email.toLowerCase()===email.toLowerCase() && u.role===role);
+        if (!user) return { success:false, error:'User not found. Check email and role.' };
+        if (password !== user.password) return { success:false, error:'Invalid password. Use: password' };
+        DB.currentUser = user; DB.currentRole = role;
+        return { success:true, user, role };
+      },
+      logout() { DB.currentUser=null; DB.currentRole=null; return {success:true}; },
+      getCurrentUser() { return DB.currentUser; },
+      getStudents() { return DB.students; },
+      getStudentById(id) { return DB.students.find(s=>s.id===id); },
+      getStudentByUserId(userId) { return DB.students.find(s=>s.userId===userId); },
+      getTeacherByUserId(userId) { return DB.teachers.find(t=>t.userId===userId); },
+      getAdminByUserId(userId) { return DB.admins.find(a=>a.userId===userId); },
+      getTeachers() { return DB.teachers; },
+      getAdmins() { return DB.admins; },
+      getDepartments() { return DB.departments; },
+      getClasses() { return DB.classes; },
+      getClassById(id) { return DB.classes.find(c=>c.id===id); },
+      getSubjects() { return DB.subjects; },
+      getSubjectById(id) { return DB.subjects.find(s=>s.id===id); },
+      getAttendance(studentId,subjectId,date) {
+        let r = DB.attendance.filter(a=>a.studentId===studentId);
+        if (subjectId) r = r.filter(a=>a.subjectId===subjectId);
+        if (date) r = r.filter(a=>a.date===date);
+        return r.sort((a,b)=>new Date(b.date)-new Date(a.date));
+      },
+      getAttendanceStats(studentId) {
+        const records = DB.attendance.filter(a=>a.studentId===studentId);
+        const total = records.length;
+        const present = records.filter(a=>a.status==='PRESENT').length;
+        const late = records.filter(a=>a.status==='LATE').length;
+        const absent = records.filter(a=>a.status==='ABSENT').length;
+        return { total, present, late, absent, percentage: total>0 ? Math.round(((present+late*0.5)/total)*100) : 0 };
+      },
+      getClassAttendance(classId,date) {
+        const students = DB.students.filter(s=>s.classId===classId);
+        return students.map(s=>{ const recs=API.getAttendance(s.id,null,date); return {student:s, records:recs}; });
+      },
+      markAttendance(studentId,subjectId,date,status,markedBy) {
+        const existing = DB.attendance.find(a=>a.studentId===studentId && a.subjectId===subjectId && a.date===date);
+        if (existing) { existing.status=status; existing.markedBy=markedBy; return existing; }
+        const record = { id:`att-${Date.now()}-${Math.random()}`, studentId, subjectId, date, status, timestamp:new Date().toISOString(), markedBy };
+        DB.attendance.push(record);
+        const student = DB.students.find(s=>s.id===studentId);
+        if (student) { const stats=API.getAttendanceStats(studentId); student.attendance=stats.percentage; }
+        return record;
+      },
+      getCurriculum(subjectId) { return DB.curriculum.filter(c=>c.subjectId===subjectId).sort((a,b)=>a.unit-b.unit||a.order-b.order); },
+      getQuizzes(subjectId) { return DB.quizzes.filter(q=>!subjectId || q.subjectId===subjectId); },
+      getQuizById(id) { return DB.quizzes.find(q=>q.id===id); },
+      getQuizAttempts(studentId,quizId) { return DB.quizAttempts.filter(a=>{ if(studentId && a.studentId!==studentId) return false; if(quizId && a.quizId!==quizId) return false; return true; }); },
+      getAssignments(classId,subjectId) { return DB.assignments.filter(a=>{ if(classId && a.classId!==classId) return false; if(subjectId && a.subjectId!==subjectId) return false; return true; }); },
+      getSubmissions(assignmentId,studentId) { return DB.submissions.filter(s=>{ if(assignmentId && s.assignmentId!==assignmentId) return false; if(studentId && s.studentId!==studentId) return false; return true; }); },
+      getGrades(studentId,subjectId) { return DB.grades.filter(g=>{ if(studentId && g.studentId!==studentId) return false; if(subjectId && g.subjectId!==subjectId) return false; return true; }); },
+      getFees(studentId) { return DB.fees.filter(f=>!studentId || f.studentId===studentId); },
+      getLibraryBooks(query) {
+        let r = DB.library;
+        if (query) r = r.filter(b=>b.title.toLowerCase().includes(query.toLowerCase()) || b.author.toLowerCase().includes(query.toLowerCase()));
+        return r;
+      },
+      getTimetable(classId,day) {
+        let r = DB.timetable;
+        if (classId) r = r.filter(t=>t.classId===classId);
+        if (day) r = r.filter(t=>t.day===day);
+        return r;
+      },
+      addTimetableEntry(entry) { const newEntry={ id:`tt-${Date.now()}`, ...entry }; DB.timetable.push(newEntry); return newEntry; },
+      deleteTimetableEntry(id) { DB.timetable = DB.timetable.filter(t=>t.id!==id); return true; },
+      getAnnouncements(audience) {
+        let r = DB.announcements;
+        if (audience) r = r.filter(a=>a.audience==='ALL' || a.audience===audience);
+        return r.sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
+      },
+      getEvents(month,year) {
+        let r = DB.events;
+        if (month!==undefined && year!==undefined) {
+          r = r.filter(e=>{ const d=new Date(e.date); return d.getMonth()===month && d.getFullYear()===year; });
+        }
+        return r;
+      },
+      getNotifications(userId) { return DB.notifications.filter(n=>n.userId===userId).sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt)); },
+      markNotificationRead(id) { const n=DB.notifications.find(n=>n.id===id); if(n) n.read=true; return n; },
+      getMessages(userId) { return DB.messages.filter(m=>m.from===userId || m.to===userId).sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp)); },
+      getInterventions(studentId) { return DB.interventions.filter(i=>{ if(studentId && i.studentId!==studentId) return false; return true; }); },
+      createIntervention(data) { const newInt={ id:`int-${Date.now()}`, ...data, status:'PENDING', assignedAt:new Date().toISOString(), createdAt:new Date().toISOString() }; DB.interventions.push(newInt); return newInt; },
+      updateIntervention(id,data) { const idx=DB.interventions.findIndex(i=>i.id===id); if(idx===-1) return null; DB.interventions[idx]={...DB.interventions[idx],...data}; return DB.interventions[idx]; },
+      getKnowledgeDocs(topic) { return DB.knowledgeDocs.filter(d=>{ if(topic && !d.topic.toLowerCase().includes(topic.toLowerCase())) return false; return true; }); },
+      askAI(query) {
+        const docs = DB.knowledgeDocs.filter(d=>d.content.toLowerCase().includes(query.toLowerCase()) || d.topic.toLowerCase().includes(query.toLowerCase()) || d.title.toLowerCase().includes(query.toLowerCase()));
+        if (docs.length===0) return { answer:"I couldn't find specific information in the knowledge base. Try asking about: SQL Joins, Normalization, Cloud Computing, or CPU Scheduling.", sources:[] };
+        let answer = docs[0].content;
+        if (query.toLowerCase().includes('join')) answer = "SQL joins combine data from multiple tables.\n\n• INNER JOIN: Returns only matching rows from both tables\n• LEFT JOIN: Returns all rows from left table + matched from right\n• RIGHT JOIN: Returns all rows from right table + matched from left\n• FULL JOIN: Returns all rows when there's a match in either table\n\nUse JOINs when you need to query related data across tables.";
+        else if (query.toLowerCase().includes('normalization')) answer = "Database Normalization organizes data to reduce redundancy and improve integrity:\n\n• 1NF: Eliminate repeating groups\n• 2NF: Remove partial dependencies\n• 3NF: Remove transitive dependencies\n• BCNF: Every determinant must be a candidate key";
+        else if (query.toLowerCase().includes('cloud') || query.toLowerCase().includes('iaas') || query.toLowerCase().includes('paas')) answer = "Cloud Service Models:\n\n• IaaS (Infrastructure): VMs, storage, networks (AWS EC2, Azure VMs)\n• PaaS (Platform): Development platforms, databases (Heroku, AWS Elastic Beanstalk)\n• SaaS (Software): Ready-to-use applications (Gmail, Salesforce)\n• FaaS (Function): Serverless computing (AWS Lambda, Azure Functions)";
+        else if (query.toLowerCase().includes('scheduling') || query.toLowerCase().includes('cpu')) answer = "CPU Scheduling Algorithms:\n\n• FCFS: First Come First Served - simple but may cause convoy effect\n• SJF: Shortest Job First - optimal average waiting time\n• Round Robin: Time quantum based - good for time-sharing\n• Priority: Higher priority first - may cause starvation";
+        return { answer, sources: docs.map(d=>({title:d.title,topic:d.topic,source:d.source})) };
+      },
+      generateAISuggestions(studentId) {
+        const student = DB.students.find(s=>s.id===studentId); if (!student) return [];
+        const suggestions = [];
+        if ((student.attendance||0) < 75) suggestions.push({ studentId:student.id, studentName:student.name, reason:`Attendance ${student.attendance}% (below 75% threshold)`, evidence:`Current attendance: ${student.attendance}%`, recommendedAction:'Schedule attendance improvement meeting and notify guardian', priority:'CRITICAL' });
+        if ((student.quizAverage||0) < 60) suggestions.push({ studentId:student.id, studentName:student.name, reason:`Quiz average ${student.quizAverage}% (below 60%)`, evidence:`Average quiz score: ${student.quizAverage}%`, recommendedAction:'Assign targeted practice quizzes and extra coaching', priority:'ATTENTION' });
+        if ((student.curriculumProgress||0) < 65) suggestions.push({ studentId:student.id, studentName:student.name, reason:`Curriculum progress ${student.curriculumProgress}% (below 65%)`, evidence:`Only ${student.curriculumProgress}% syllabus completed`, recommendedAction:'Create personalized catch-up plan', priority:'ATTENTION' });
+        if ((student.cgpa||0) < 7.0) suggestions.push({ studentId:student.id, studentName:student.name, reason:`CGPA ${student.cgpa} below first class threshold`, evidence:`Current CGPA: ${student.cgpa}`, recommendedAction:'Academic counseling and study plan revision', priority:'ATTENTION' });
+        if (student.backlogs > 0) suggestions.push({ studentId:student.id, studentName:student.name, reason:`${student.backlogs} active backlog(s) detected`, evidence:`Backlog count: ${student.backlogs}`, recommendedAction:'Immediate backlog clearance plan required', priority:'CRITICAL' });
+        return suggestions;
+      },
+      createQRSession(teacherId,classId,subjectId) {
+        const session = { id:`qr-${Date.now()}`, teacherId, classId, subjectId, createdAt:new Date().toISOString(), expiresAt:new Date(Date.now()+120000).toISOString(), active:true };
+        DB.qrSessions.push(session); return session;
+      },
+      scanQR(sessionId,studentId) {
+        const session = DB.qrSessions.find(s=>s.id===sessionId && s.active);
+        if (!session) return { success:false, error:'Invalid or expired QR session' };
+        if (new Date(session.expiresAt) < new Date()) { session.active=false; return { success:false, error:'QR session expired' }; }
+        const today = new Date().toISOString().split('T')[0];
+        const existing = DB.attendance.find(a=>a.studentId===studentId && a.subjectId===session.subjectId && a.date===today);
+        if (existing) return { success:false, error:'Attendance already recorded for today' };
+        const record = { id:`att-${Date.now()}`, studentId, subjectId:session.subjectId, date:today, status:'PRESENT', timestamp:new Date().toISOString(), markedBy:session.teacherId };
+        DB.attendance.push(record);
+        const student = DB.students.find(s=>s.id===studentId);
+        if (student) { const stats = API.getAttendanceStats(studentId); student.attendance = stats.percentage; }
+        return { success:true, record };
+      },
+      completeDemoFlow(studentId) {
+        const student = DB.students.find(s=>s.id===studentId); if (!student) return null;
+        const attempt = DB.quizAttempts.find(a=>a.studentId===studentId && a.quizId==='q1');
+        if (attempt) attempt.score = 78;
+        const all = DB.quizAttempts.filter(a=>a.studentId===studentId);
+        const avg = all.reduce((s,a)=>s+(a.score/a.total)*100,0)/all.length;
+        student.quizAverage = Math.round(avg);
+        student.attendance = Math.min(100, student.attendance + 8);
+        const intervention = DB.interventions.find(i=>i.studentId===studentId);
+        if (intervention) { intervention.status='COMPLETED'; intervention.afterScore=78; intervention.completedAt=new Date().toISOString(); }
+        DB.notifications.push({ id:`n-${Date.now()}`, userId:student.userId, title:'Great Improvement!', message:'Your SQL JOIN score improved to 78%! Keep it up!', type:'SUCCESS', read:false, link:'#quiz', createdAt:new Date().toISOString() });
+        return { success:true, student };
+      },
+      getSettings() { return DB.settings; },
+      updateSettings(data) { DB.settings = {...DB.settings, ...data}; return DB.settings; }
+    };
+
+    // ===================== TOAST & NOTIFICATIONS =====================
+    function showToast(message,type='info',title=null) {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      toast.className = `toast toast-${type}`;
+      const icons = { success:'fa-check-circle', error:'fa-exclamation-circle', warning:'fa-exclamation-triangle', info:'fa-info-circle' };
+      const titles = { success:'Success', error:'Error', warning:'Warning', info:'Info' };
+      toast.innerHTML = `
+        <div class="toast-icon"><i class="fas ${icons[type]||icons.info}"></i></div>
+        <div class="toast-content"><div class="toast-title">${title || titles[type] || 'Notification'}</div><div class="toast-desc">${message}</div></div>
+        <button class="toast-close" onclick="this.parentElement.remove()"><i class="fas fa-times"></i></button>
+      `;
+      container.appendChild(toast);
+      setTimeout(() => { toast.style.opacity='0'; toast.style.transform='translateX(100px)'; setTimeout(()=>toast.remove(),300); }, 5000);
+    }
+    function openNotifications() {
+      document.getElementById('notif-panel').classList.add('open');
+      document.getElementById('overlay').style.display='flex';
+      const list = document.getElementById('notif-list');
+      const user = API.getCurrentUser();
+      if (!user) return;
+      const notifs = API.getNotifications(user.id);
+      if (notifs.length===0) { list.innerHTML='<div class="empty-state"><div class="empty-icon"><i class="fas fa-bell-slash"></i></div><h4>No notifications</h4><p>You are all caught up!</p></div>'; return; }
+      list.innerHTML = notifs.map(n => `
+        <div class="notif-item ${n.read?'':'unread'}" onclick="markNotification('${n.id}')">
+          <div class="notif-icon ${n.type==='SUCCESS'?'success':n.type==='ATTENDANCE'?'warning':n.type==='INTERVENTION'?'danger':'info'}"><i class="fas ${n.type==='ASSESSMENT'?'fa-pencil-alt':n.type==='ATTENDANCE'?'fa-calendar-check':n.type==='SUCCESS'?'fa-trophy':n.type==='INTERVENTION'?'fa-exclamation-triangle':'fa-bell'}"></i></div>
+          <div class="notif-content"><div class="title">${n.title} ${n.read?'':'<span class="badge badge-primary" style="font-size:8px;padding:2px 6px;">NEW</span>'}</div><div class="desc">${n.message}</div><div class="time">${new Date(n.createdAt).toLocaleString()}</div></div>
+        </div>
+      `).join('');
+    }
+    function closeNotifications() { document.getElementById('notif-panel').classList.remove('open'); document.getElementById('overlay').style.display='none'; }
+    function markNotification(id) { API.markNotificationRead(id); openNotifications(); }
+
+    // ===================== UTILITY COMPONENTS =====================
+    function AnimatedNumber({ value, suffix='', duration=1000 }) {
+      const [display, setDisplay] = useState(0);
+      useEffect(() => {
+        let start = 0; const end = value; const startTime = Date.now();
+        const animate = () => {
+          const elapsed = Date.now() - startTime;
+          const progress = Math.min(elapsed / duration, 1);
+          const easeOut = 1 - Math.pow(1 - progress, 3);
+          setDisplay(Math.round(start + (end - start) * easeOut));
+          if (progress < 1) requestAnimationFrame(animate);
+        };
+        requestAnimationFrame(animate);
+      }, [value, duration]);
+      return <span>{display}{suffix}</span>;
+    }
+
+    function StatCard({ icon, iconClass, label, value, change, changeType, suffix='', delay=0 }) {
+      return (
+        <div className={`stat-card animate-fadeIn stagger-${delay}`}>
+          <div className={`stat-icon ${iconClass}`}><i className={`fas ${icon}`}></i></div>
+          <div className="stat-label">{label}</div>
+          <div className="stat-value"><AnimatedNumber value={value} suffix={suffix} /></div>
+          {change !== undefined && (
+            <div className={`stat-change ${changeType}`}>
+              <i className={`fas fa-arrow-${changeType==='up'?'up':'down'}`}></i> {Math.abs(change)}% from last month
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    function Modal({ isOpen, onClose, title, children, footer }) {
+      if (!isOpen) return null;
+      return (
+        <div className="modal-overlay" onClick={onClose}>
+          <div className="modal-content" onClick={e=>e.stopPropagation()}>
+            <div className="modal-header"><h3>{title}</h3><button className="btn btn-ghost btn-icon" onClick={onClose}><i className="fas fa-times"></i></button></div>
+            <div className="modal-body">{children}</div>
+            {footer && <div className="modal-footer">{footer}</div>}
+          </div>
+        </div>
+      );
+    }
+
+    function EmptyState({ icon, title, description }) {
+      return (
+        <div className="empty-state">
+          <div className="empty-icon"><i className={`fas ${icon}`}></i></div>
+          <h4>{title}</h4><p>{description}</p>
+        </div>
+      );
+    }
+
+    // ===================== LOGIN =====================
+    function Login({ onLogin }) {
+      const [email, setEmail] = useState('');
+      const [password, setPassword] = useState('password');
+      const [role, setRole] = useState('STUDENT');
+      const [error, setError] = useState('');
+      const [loading, setLoading] = useState(false);
+      const demoAccounts = [
+        { label:'Student', role:'STUDENT', email:'aarav@student.edu', desc:'Student Portal Access' },
+        { label:'Teacher', role:'TEACHER', email:'priya@edutrack.edu', desc:'Faculty Dashboard' },
+        { label:'Admin', role:'ADMIN', email:'admin@edutrack.edu', desc:'System Administration' }
+      ];
+      const handleSubmit = (e) => {
+        e.preventDefault(); setLoading(true); setError('');
+        setTimeout(() => {
+          const result = API.login(email, password, role);
+          if (result.success) { showToast(`Welcome back, ${result.user.name}!`,'success'); onLogin(result.user, result.role); }
+          else { setError(result.error); showToast(result.error,'error'); }
+          setLoading(false);
+        }, 600);
+      };
+      return (
+        <div className="login-container">
+          <div className="login-bg-pattern"></div>
+          <div className="login-orbs"></div>
+          <div className="login-orbs"></div>
+          <div className="login-box animate-scaleIn">
+            <div className="logo">
+              <div className="logo-icon"><i className="fas fa-graduation-cap"></i></div>
+              <h1>EDUTrack AI Pro</h1>
+              <p>Next-Generation Academic Operating System</p>
+            </div>
+            <form onSubmit={handleSubmit}>
+              <div className="form-group">
+                <label>Select Access Level</label>
+                <div className="role-selector">
+                  {demoAccounts.map(acc => (
+                    <button key={acc.role} type="button" className={`role-btn ${role===acc.role?'active':''}`}
+                      onClick={()=>{ setRole(acc.role); setEmail(acc.email); setPassword('password'); setError(''); }}>
+                      <i className={`fas ${acc.role==='STUDENT'?'fa-user-graduate':acc.role==='TEACHER'?'fa-chalkboard-teacher':'fa-user-shield'}`} />
+                      {acc.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="form-group">
+                <label>Email Address</label>
+                <input type="email" className="input" value={email} onChange={e=>setEmail(e.target.value)} placeholder="Enter your email" required />
+              </div>
+              <div className="form-group">
+                <label>Password</label>
+                <input type="password" className="input" value={password} onChange={e=>setPassword(e.target.value)} placeholder="Enter password" required />
+              </div>
+              {error && <p style={{color:'#f87171',fontSize:'13px',marginBottom:'16px',display:'flex',alignItems:'center',gap:'6px'}}><i className="fas fa-exclamation-circle"></i> {error}</p>}
+              <button type="submit" className="btn btn-primary btn-block btn-lg" disabled={loading} style={{marginTop:'8px'}}>
+                {loading?<><i className="fas fa-circle-notch fa-spin"></i> Authenticating...</>:<><i className="fas fa-sign-in-alt"></i> Secure Login</>}
+              </button>
+              <p style={{textAlign:'center',color:'rgba(255,255,255,0.3)',fontSize:'12px',marginTop:'16px'}}>
+                <i className="fas fa-shield-alt"></i> Secured with 256-bit encryption
+              </p>
+            </form>
+          </div>
+        </div>
+      );
+    }
+
+    // ===================== MAIN APP =====================
+    function App() {
+      const [user, setUser] = useState(null);
+      const [role, setRole] = useState(null);
+      const [viewAs, setViewAs] = useState(null); // For admin/teacher to switch views
+      const [currentPage, setCurrentPage] = useState('dashboard');
+      const [sidebarOpen, setSidebarOpen] = useState(false);
+      const [theme, setTheme] = useState('light');
+      const [notifCount, setNotifCount] = useState(0);
+      const [modalContent, setModalContent] = useState(null);
+
+      useEffect(() => {
+        const saved = localStorage.getItem('edutrack-theme');
+        if (saved) { setTheme(saved); document.documentElement.setAttribute('data-theme', saved); }
+        if (user) {
+          const notifs = API.getNotifications(user.id);
+          setNotifCount(notifs.filter(n=>!n.read).length);
+        }
+      }, [user]);
+
+      const effectiveRole = viewAs || role;
+
+      const handleLogin = (user,role) => { setUser(user); setRole(role); setViewAs(null); const n=API.getNotifications(user.id); setNotifCount(n.filter(n=>!n.read).length); };
+      const handleLogout = () => { API.logout(); setUser(null); setRole(null); setViewAs(null); showToast('Logged out successfully','info'); };
+      const toggleTheme = () => { const nt = theme==='light'?'dark':'light'; setTheme(nt); document.documentElement.setAttribute('data-theme',nt); localStorage.setItem('edutrack-theme',nt); };
+      const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
+      const navigateTo = (page) => { setCurrentPage(page); setSidebarOpen(false); window.scrollTo(0,0); };
+
+      // Navigation structure with role-based access
+      const navStructure = {
+        STUDENT: [
+          { section:'Main', items:[ {id:'dashboard',label:'Dashboard',icon:'fa-home'}, {id:'attendance',label:'Attendance',icon:'fa-calendar-check'}, {id:'timetable',label:'Timetable',icon:'fa-clock'}, {id:'curriculum',label:'Curriculum',icon:'fa-book-open'}, {id:'assignments',label:'Assignments',icon:'fa-tasks'}, {id:'quiz',label:'Quizzes',icon:'fa-pencil-alt'} ] },
+          { section:'Academics', items:[ {id:'grades',label:'Grades & Reports',icon:'fa-chart-bar'}, {id:'library',label:'Library',icon:'fa-book'}, {id:'fees',label:'Fee Status',icon:'fa-rupee-sign'} ] },
+          { section:'Support', items:[ {id:'ai-assistant',label:'AI Assistant',icon:'fa-robot'}, {id:'messages',label:'Messages',icon:'fa-envelope'}, {id:'announcements',label:'Announcements',icon:'fa-bullhorn'} ] }
+        ],
+        TEACHER: [
+          { section:'Main', items:[ {id:'dashboard',label:'Dashboard',icon:'fa-home'}, {id:'attendance',label:'Attendance',icon:'fa-calendar-check'}, {id:'timetable',label:'Timetable',icon:'fa-clock'}, {id:'curriculum',label:'Curriculum',icon:'fa-book-open'}, {id:'assignments',label:'Assignments',icon:'fa-tasks'}, {id:'quiz',label:'Quizzes',icon:'fa-pencil-alt'} ] },
+          { section:'Management', items:[ {id:'students',label:'Students',icon:'fa-users'}, {id:'grades',label:'Gradebook',icon:'fa-chart-bar'}, {id:'action-center',label:'Action Center',icon:'fa-bullhorn'} ] },
+          { section:'Tools', items:[ {id:'ai-assistant',label:'AI Assistant',icon:'fa-robot'}, {id:'analytics',label:'Analytics',icon:'fa-chart-line'}, {id:'announcements',label:'Announcements',icon:'fa-bullhorn'} ] }
+        ],
+        ADMIN: [
+          { section:'Overview', items:[ {id:'dashboard',label:'Dashboard',icon:'fa-home'}, {id:'analytics',label:'Analytics',icon:'fa-chart-line'} ] },
+          { section:'Management', items:[ {id:'students',label:'Students',icon:'fa-users'}, {id:'teachers',label:'Teachers',icon:'fa-chalkboard-teacher'}, {id:'classes',label:'Classes',icon:'fa-school'}, {id:'timetable',label:'Timetable',icon:'fa-clock'} ] },
+          { section:'Operations', items:[ {id:'announcements',label:'Announcements',icon:'fa-bullhorn'}, {id:'settings',label:'Settings',icon:'fa-cog'} ] }
+        ]
+      };
+
+      const getNavItems = () => navStructure[effectiveRole] || navStructure.STUDENT;
+      const pageTitles = { dashboard:'Dashboard', attendance:'Attendance', curriculum:'Curriculum', quiz:'Quizzes', 'ai-assistant':'AI Assistant', 'action-center':'Action Center', analytics:'Analytics', students:'Students', teachers:'Teachers', timetable:'Timetable', settings:'Settings', assignments:'Assignments', grades:'Grades & Reports', library:'Library', fees:'Fee Status', messages:'Messages', announcements:'Announcements', classes:'Classes' };
+
+      if (!user) return <Login onLogin={handleLogin} />;
+
+      const renderPage = () => {
+        const props = { user, role, viewAs, setViewAs, navigateTo, onModal: setModalContent };
+        switch(currentPage) {
+          case 'dashboard': return <DashboardPage {...props} />;
+          case 'attendance': return <AttendancePage {...props} />;
+          case 'curriculum': return <CurriculumPage {...props} />;
+          case 'quiz': return <QuizPage {...props} />;
+          case 'assignments': return <AssignmentsPage {...props} />;
+          case 'grades': return <GradesPage {...props} />;
+          case 'library': return <LibraryPage {...props} />;
+          case 'fees': return <FeesPage {...props} />;
+          case 'ai-assistant': return <AIAssistantPage {...props} />;
+          case 'action-center': return <ActionCenterPage {...props} />;
+          case 'analytics': return <AnalyticsPage {...props} />;
+          case 'students': return <StudentsPage {...props} />;
+          case 'teachers': return <TeachersPage {...props} />;
+          case 'classes': return <ClassesPage {...props} />;
+          case 'timetable': return <TimetablePage {...props} />;
+          case 'messages': return <MessagesPage {...props} />;
+          case 'announcements': return <AnnouncementsPage {...props} />;
+          case 'settings': return <SettingsPage {...props} theme={theme} toggleTheme={toggleTheme} />;
+          default: return <DashboardPage {...props} />;
+        }
+      };
+
+      const canSwitchView = role === 'ADMIN' || role === 'TEACHER';
+      const viewOptions = role === 'ADMIN' ? ['ADMIN','TEACHER','STUDENT'] : role === 'TEACHER' ? ['TEACHER','STUDENT'] : [];
+
+      return (
+        <div className="app-container">
+          <div className={`sidebar ${sidebarOpen?'open':''}`}>
+            <div className="sidebar-brand">
+              <div className="brand-icon"><i className="fas fa-graduation-cap"></i></div>
+              <div><h2>EDUTrack AI</h2><small>Pro v3.0 · Academic OS</small></div>
+            </div>
+            <nav className="sidebar-nav">
+              {getNavItems().map((section, si) => (
+                <div key={si}>
+                  <div className="nav-section">{section.section}</div>
+                  {section.items.map(item => (
+                    <div key={item.id} className={`nav-item ${currentPage===item.id?'active':''}`} onClick={()=>navigateTo(item.id)}>
+                      <i className={`fas ${item.icon}`}></i> {item.label}
+                      {item.id==='action-center' && effectiveRole==='TEACHER' && <span className="nav-badge">{DB.interventions.filter(i=>i.status==='PENDING').length}</span>}
+                    </div>
+                  ))}
+                </div>
+              ))}
+              <div className="nav-section">Account</div>
+              <div className="nav-item" onClick={handleLogout}><i className="fas fa-sign-out-alt"></i> Logout</div>
+            </nav>
+            <div className="sidebar-footer">
+              <div className="avatar">{user.name.charAt(0)}</div>
+              <div className="user-info">
+                <div className="name">{user.name}</div>
+                <div className="role">{viewAs ? `${role} → ${viewAs}` : role}</div>
+              </div>
+              <button className="theme-btn" onClick={toggleTheme}><i className={`fas ${theme==='light'?'fa-moon':'fa-sun'}`}></i></button>
+            </div>
+          </div>
+          <div className="main-content">
+            <header className="topbar">
+              <div className="topbar-left">
+                <button className="menu-toggle" onClick={toggleSidebar}><i className="fas fa-bars"></i></button>
+                <h1 className="page-title">{pageTitles[currentPage]||'Dashboard'}</h1>
+              </div>
+              <div className="topbar-right">
+                {canSwitchView && (
+                  <div className="view-switcher">
+                    <i className="fas fa-eye" style={{color:'var(--primary)'}}></i>
+                    <select value={viewAs||role} onChange={e=>{ setViewAs(e.target.value===role?null:e.target.value); setCurrentPage('dashboard'); }}>
+                      {viewOptions.map(v=><option key={v} value={v}>{v==='ADMIN'?'Admin View':v==='TEACHER'?'Teacher View':'Student View'}</option>)}
+                    </select>
+                  </div>
+                )}
+                <div className="search-bar"><i className="fas fa-search"></i><input type="text" placeholder="Search anything..." /></div>
+                <button className="icon-btn" onClick={toggleTheme}><i className={`fas ${theme==='light'?'fa-moon':'fa-sun'}`}></i></button>
+                <button className="icon-btn" onClick={openNotifications}>
+                  <i className="fas fa-bell"></i>
+                  {notifCount>0 && <span className="badge-dot"></span>}
+                </button>
+                <button className="icon-btn" onClick={handleLogout}><i className="fas fa-sign-out-alt"></i></button>
+              </div>
+            </header>
+            <div className="page-content">{renderPage()}</div>
+          </div>
+          {modalContent && <Modal {...modalContent} />}
+        </div>
+      );
+    }
+
+    // ===================== DASHBOARD =====================
+    function DashboardPage({ user, role, viewAs, navigateTo }) {
+      const [stats, setStats] = useState(null);
+      const [suggestions, setSuggestions] = useState([]);
+      const [announcements, setAnnouncements] = useState([]);
+      const [recentActivity, setRecentActivity] = useState([]);
+      const effectiveRole = viewAs || role;
+
+      useEffect(() => {
+        if (effectiveRole==='STUDENT') {
+          const s = API.getStudentByUserId(user.id);
+          if (s) {
+            const att = API.getAttendanceStats(s.id);
+            const fees = API.getFees(s.id);
+            const pendingAssignments = API.getAssignments(s.classId).filter(a=>a.status==='ACTIVE' && !API.getSubmissions(a.id,s.id).length);
+            setStats({ attendance:s.attendance||0, curriculum:s.curriculumProgress||0, quizAvg:s.quizAverage||0, cgpa:s.cgpa||0, pendingFees:fees[0]?.due||0, pendingAssignments:pendingAssignments.length, ...att });
+          }
+          setAnnouncements(API.getAnnouncements('STUDENT').slice(0,3));
+        } else if (effectiveRole==='TEACHER') {
+          const all = API.getStudents(); const total=all.length;
+          const avgAtt=Math.round(all.reduce((s,a)=>s+(a.attendance||0),0)/total);
+          const avgQuiz=Math.round(all.reduce((s,a)=>s+(a.quizAverage||0),0)/total);
+          const avgCgpa=(all.reduce((s,a)=>s+(a.cgpa||0),0)/total).toFixed(2);
+          const critical = all.filter(s=>s.attendance<75 || s.quizAverage<60).length;
+          setStats({ totalStudents:total, avgAttendance:avgAtt, avgQuiz:avgQuiz, avgCgpa, critical, classes:DB.classes.length });
+          let sugg=[]; all.forEach(s=>{ sugg.push(...API.generateAISuggestions(s.id)); }); setSuggestions(sugg.slice(0,5));
+          setAnnouncements(API.getAnnouncements('TEACHER').slice(0,3));
+        } else if (effectiveRole==='ADMIN') {
+          const all=API.getStudents();
+          setStats({ totalStudents:all.length, totalTeachers:DB.teachers.length, totalSubjects:DB.subjects.length, totalClasses:DB.classes.length, totalDepartments:DB.departments.length });
+          setAnnouncements(API.getAnnouncements().slice(0,3));
+        }
+        // Recent activity
+        const acts = [];
+        if (effectiveRole==='STUDENT') {
+          const s = API.getStudentByUserId(user.id);
+          if (s) {
+            const atts = API.getAttendance(s.id).slice(0,3);
+            atts.forEach(a=>acts.push({ time:a.date, text:`Marked ${a.status} for ${API.getSubjectById(a.subjectId)?.name||'Subject'}`, type:a.status==='PRESENT'?'success':'danger' }));
+          }
+        } else {
+          acts.push({ time:'2 hours ago', text:'System backup completed successfully', type:'success' });
+          acts.push({ time:'4 hours ago', text:'New student registration: Ishaan Kumar', type:'info' });
+          acts.push({ time:'6 hours ago', text:'Quiz published: SQL Joins Mastery', type:'info' });
+        }
+        setRecentActivity(acts);
+      }, [user, effectiveRole]);
+
+      if (effectiveRole==='STUDENT') return (
+        <div>
+          <div className="stats-grid">
+            <StatCard icon="fa-calendar-check" iconClass="purple" label="Attendance" value={stats?.attendance||0} suffix="%" change={3} changeType="up" delay={1} />
+            <StatCard icon="fa-book-open" iconClass="blue" label="Curriculum" value={stats?.curriculum||0} suffix="%" delay={2} />
+            <StatCard icon="fa-pencil-alt" iconClass="green" label="Quiz Average" value={stats?.quizAvg||0} suffix="%" change={5} changeType="up" delay={3} />
+            <StatCard icon="fa-chart-line" iconClass="orange" label="CGPA" value={stats?.cgpa||0} delay={4} />
+          </div>
+          <div className="grid-2">
+            <div className="card animate-fadeIn stagger-2">
+              <div className="card-header"><h3 className="card-title"><i className="fas fa-calendar-day"></i> Today's Schedule</h3><button className="btn btn-sm btn-primary" onClick={()=>navigateTo('timetable')}>View All</button></div>
+              <div>
+                {API.getTimetable('cls1','Monday').slice(0,3).map((t,i)=> (
+                  <div key={i} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'12px 0',borderBottom:i<2?'1px solid var(--border-light)':'none'}}>
+                    <div><div style={{fontWeight:700}}>{API.getSubjectById(t.subjectId)?.name}</div><div style={{fontSize:'12px',color:'var(--text-light)'}}>{t.room} · {t.type}</div></div>
+                    <span className="badge badge-primary">{t.time}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="card animate-fadeIn stagger-3">
+              <div className="card-header"><h3 className="card-title"><i className="fas fa-bell"></i> Announcements</h3></div>
+              {announcements.length>0 ? announcements.map((a,i)=> (
+                <div key={i} style={{padding:'10px 0',borderBottom:i<announcements.length-1?'1px solid var(--border-light)':'none'}}>
+                  <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
+                    <span className={`badge ${a.priority==='HIGH'?'badge-danger':'badge-info'}`}>{a.priority}</span>
+                    <span style={{fontWeight:700,fontSize:'14px'}}>{a.title}</span>
+                  </div>
+                  <p style={{fontSize:'13px',color:'var(--text-secondary)',marginTop:'4px'}}>{a.content}</p>
+                </div>
+              )) : <EmptyState icon="fa-bullhorn" title="No announcements" description="Check back later for updates" />}
+            </div>
+          </div>
+          <div className="grid-2" style={{marginTop:'24px'}}>
+            <div className="card animate-fadeIn stagger-4">
+              <div className="card-header"><h3 className="card-title"><i class="fas fa-tasks"></i> Pending Tasks</h3></div>
+              <div style={{display:'flex',gap:'16px',flexWrap:'wrap'}}>
+                <div style={{flex:1,minWidth:'140px',padding:'16px',background:'var(--bg-primary)',borderRadius:'12px',textAlign:'center'}}>
+                  <div style={{fontSize:'28px',fontWeight:800,color:'var(--primary)'}}>{stats?.pendingAssignments||0}</div>
+                  <div style={{fontSize:'12px',color:'var(--text-secondary)',marginTop:'4px'}}>Assignments Due</div>
+                </div>
+                <div style={{flex:1,minWidth:'140px',padding:'16px',background:'var(--bg-primary)',borderRadius:'12px',textAlign:'center'}}>
+                  <div style={{fontSize:'28px',fontWeight:800,color:'var(--warning)'}}>₹{stats?.pendingFees||0}</div>
+                  <div style={{fontSize:'12px',color:'var(--text-secondary)',marginTop:'4px'}}>Pending Fees</div>
+                </div>
+              </div>
+            </div>
+            <div className="card animate-fadeIn stagger-5">
+              <div className="card-header"><h3 className="card-title"><i class="fas fa-history"></i> Recent Activity</h3></div>
+              <div className="timeline">
+                {recentActivity.map((act,i)=> (
+                  <div key={i} className={`timeline-item ${act.type}`}>
+                    <div className="time">{act.time}</div>
+                    <div className="content">{act.text}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+
+      if (effectiveRole==='TEACHER') return (
+        <div>
+          <div className="stats-grid">
+            <StatCard icon="fa-users" iconClass="purple" label="Total Students" value={stats?.totalStudents||0} change={8} changeType="up" delay={1} />
+            <StatCard icon="fa-calendar-check" iconClass="green" label="Avg Attendance" value={stats?.avgAttendance||0} suffix="%" delay={2} />
+            <StatCard icon="fa-pencil-alt" iconClass="blue" label="Avg Quiz Score" value={stats?.avgQuiz||0} suffix="%" delay={3} />
+            <StatCard icon="fa-exclamation-triangle" iconClass="red" label="Need Attention" value={stats?.critical||0} delay={4} />
+          </div>
+          <div className="grid-2">
+            <div className="card animate-fadeIn stagger-2">
+              <div className="card-header"><h3 className="card-title"><i className="fas fa-brain"></i> AI Insights</h3><button className="btn btn-sm btn-primary" onClick={()=>navigateTo('action-center')}>View All</button></div>
+              {suggestions.length>0 ? suggestions.map((s,i)=> (
+                <div key={i} className={`action-card ${s.priority==='CRITICAL'?'critical':'attention'}`}>
+                  <div className="action-header"><strong>{s.studentName}</strong> <span className={`badge ${s.priority==='CRITICAL'?'badge-danger':'badge-warning'}`}>{s.priority}</span></div>
+                  <div className="action-reason">{s.reason}</div>
+                  <div className="action-evidence">{s.evidence}</div>
+                </div>
+              )) : <EmptyState icon="fa-check-circle" title="All clear!" description="No students need attention right now" />}
+            </div>
+            <div className="card animate-fadeIn stagger-3">
+              <div className="card-header"><h3 className="card-title"><i className="fas fa-bullhorn"></i> Recent Announcements</h3></div>
+              {announcements.map((a,i)=> (
+                <div key={i} style={{padding:'10px 0',borderBottom:i<announcements.length-1?'1px solid var(--border-light)':'none'}}>
+                  <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
+                    <span className={`badge ${a.priority==='HIGH'?'badge-danger':'badge-info'}`}>{a.priority}</span>
+                    <span style={{fontWeight:700,fontSize:'14px'}}>{a.title}</span>
+                  </div>
+                  <p style={{fontSize:'13px',color:'var(--text-secondary)',marginTop:'4px'}}>{a.content}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      );
+
+      return (
+        <div>
+          <div className="stats-grid">
+            <StatCard icon="fa-users" iconClass="purple" label="Students" value={stats?.totalStudents||0} change={12} changeType="up" delay={1} />
+            <StatCard icon="fa-chalkboard-teacher" iconClass="blue" label="Teachers" value={stats?.totalTeachers||0} delay={2} />
+            <StatCard icon="fa-book" iconClass="green" label="Subjects" value={stats?.totalSubjects||0} delay={3} />
+            <StatCard icon="fa-school" iconClass="orange" label="Classes" value={stats?.totalClasses||0} delay={4} />
+          </div>
+          <div className="grid-2">
+            <div className="card card-gradient animate-fadeIn stagger-2">
+              <div className="card-header"><h3 className="card-title"><i className="fas fa-server"></i> System Status</h3></div>
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'16px'}}>
+                <div style={{padding:'16px',background:'rgba(255,255,255,0.1)',borderRadius:'12px',textAlign:'center'}}>
+                  <div style={{fontSize:'32px',fontWeight:800}}>99.9%</div>
+                  <div style={{fontSize:'12px',opacity:0.8,marginTop:'4px'}}>Uptime</div>
+                </div>
+                <div style={{padding:'16px',background:'rgba(255,255,255,0.1)',borderRadius:'12px',textAlign:'center'}}>
+                  <div style={{fontSize:'32px',fontWeight:800}}>45ms</div>
+                  <div style={{fontSize:'12px',opacity:0.8,marginTop:'4px'}}>Latency</div>
+                </div>
+              </div>
+              <div style={{marginTop:'16px',display:'flex',gap:'8px',flexWrap:'wrap'}}>
+                <span className="badge badge-success"><i className="fas fa-check"></i> Database: Online</span>
+                <span className="badge badge-success"><i className="fas fa-check"></i> AI Engine: Active</span>
+                <span className="badge badge-success"><i className="fas fa-check"></i> Notifications: Running</span>
+              </div>
+            </div>
+            <div className="card animate-fadeIn stagger-3">
+              <div className="card-header"><h3 className="card-title"><i className="fas fa-bullhorn"></i> Recent Announcements</h3><button className="btn btn-sm btn-primary" onClick={()=>navigateTo('announcements')}>Manage</button></div>
+              {announcements.map((a,i)=> (
+                <div key={i} style={{padding:'10px 0',borderBottom:i<announcements.length-1?'1px solid var(--border-light)':'none'}}>
+                  <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
+                    <span className={`badge ${a.priority==='HIGH'?'badge-danger':'badge-info'}`}>{a.priority}</span>
+                    <span style={{fontWeight:700,fontSize:'14px'}}>{a.title}</span>
+                  </div>
+                  <p style={{fontSize:'13px',color:'var(--text-secondary)',marginTop:'4px'}}>{a.content}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ===================== ATTENDANCE =====================
+    function AttendancePage({ user, role, viewAs }) {
+      const effectiveRole = viewAs || role;
+      const [activeTab, setActiveTab] = useState('overview');
+      const [qrActive, setQrActive] = useState(false);
+      const [qrSession, setQrSession] = useState(null);
+      const [timer, setTimer] = useState(120);
+      const [scanResult, setScanResult] = useState(null);
+      const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+      const [selectedClass, setSelectedClass] = useState('cls1');
+      const student = API.getStudentByUserId(user.id);
+      const teacher = API.getTeacherByUserId(user.id);
+
+      useEffect(() => {
+        let interval;
+        if (qrActive && timer > 0) {
+          interval = setInterval(() => setTimer(t => t-1), 1000);
+        } else if (timer === 0) { setQrActive(false); showToast('QR session expired','warning'); }
+        return () => clearInterval(interval);
+      }, [qrActive, timer]);
+
+      const startQR = () => {
+        const session = API.createQRSession(teacher?.id||'t1', selectedClass, 'sub1');
+        setQrSession(session); setQrActive(true); setTimer(120); setScanResult(null);
+        showToast('QR Session started! Students can now scan.','success');
+      };
+
+      const scanQR = () => {
+        if (!qrSession || !student) { showToast('No active QR session','error'); return; }
+        const result = API.scanQR(qrSession.id, student.id);
+        if (result.success) { setScanResult({status:'success',message:'Attendance recorded successfully!'}); showToast('Attendance recorded!','success'); }
+        else { setScanResult({status:'error',message:result.error}); showToast(result.error,'error'); }
+        setTimeout(()=>setScanResult(null),4000);
+      };
+
+      const handleBulkAttendance = (studentId, status) => {
+        API.markAttendance(studentId, 'sub1', selectedDate, status, teacher?.id||'t1');
+        showToast(`Attendance marked: ${status}`,'success');
+      };
+
+      const attendanceRecords = student ? API.getAttendance(student.id) : [];
+      const stats = student ? API.getAttendanceStats(student.id) : {};
+
+      if (effectiveRole==='STUDENT') return (
+        <div>
+          <div className="stats-grid">
+            <StatCard icon="fa-calendar-check" iconClass="green" label="Overall" value={stats.percentage||0} suffix="%" delay={1} />
+            <StatCard icon="fa-check" iconClass="purple" label="Present" value={stats.present||0} delay={2} />
+            <StatCard icon="fa-clock" iconClass="orange" label="Late" value={stats.late||0} delay={3} />
+            <StatCard icon="fa-times" iconClass="red" label="Absent" value={stats.absent||0} delay={4} />
+          </div>
+          <div className="grid-2">
+            <div className="card animate-fadeIn stagger-2">
+              <div className="card-header"><h3 className="card-title"><i className="fas fa-qrcode"></i> Quick Scan</h3></div>
+              <div className="qr-container">
+                {qrSession ? (
+                  <>
+                    <div className="qr-placeholder animate-pulse-glow"><i className="fas fa-qrcode"></i></div>
+                    <div className="qr-timer">{Math.floor(timer/60)}:{(timer%60).toString().padStart(2,'0')}</div>
+                    <button className="btn btn-primary btn-block btn-lg" onClick={scanQR} disabled={!qrActive}>
+                      <i className="fas fa-camera"></i> Scan & Mark
+                    </button>
+                    {scanResult && <p style={{color:scanResult.status==='success'?'var(--success)':'var(--danger)',fontWeight:700,marginTop:'12px'}}><i className={`fas fa-${scanResult.status==='success'?'check-circle':'exclamation-circle'}`}></i> {scanResult.message}</p>}
+                  </>
+                ) : (
+                  <div style={{textAlign:'center',padding:'20px'}}>
+                    <i className="fas fa-qrcode" style={{fontSize:'56px',color:'var(--text-light)',marginBottom:'16px'}}></i>
+                    <p style={{color:'var(--text-secondary)'}}>No active QR session. Ask your teacher to start one.</p>
+                  </div>
+                )}
+              </div>
+            </div>
+            <div className="card animate-fadeIn stagger-3">
+              <div className="card-header"><h3 className="card-title"><i className="fas fa-history"></i> Recent Records</h3></div>
+              <div className="table-container">
+                <table><thead><tr><th>Date</th><th>Subject</th><th>Status</th></tr></thead>
+                <tbody>{attendanceRecords.slice(0,8).map((a,i)=> (
+                  <tr key={i}><td>{a.date}</td><td>{API.getSubjectById(a.subjectId)?.code}</td>
+                  <td><span className={`badge ${a.status==='PRESENT'?'badge-success':a.status==='LATE'?'badge-warning':'badge-danger'}`}>{a.status}</span></td></tr>
+                ))}</tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+
+      return (
+        <div>
+          <div className="tabs">
+            <button className={`tab ${activeTab==='overview'?'active':''}`} onClick={()=>setActiveTab('overview')}>Overview</button>
+            <button className={`tab ${activeTab==='mark'?'active':''}`} onClick={()=>setActiveTab('mark')}>Mark Attendance</button>
+            <button className={`tab ${activeTab==='qr'?'active':''}`} onClick={()=>setActiveTab('qr')}>QR Manager</button>
+          </div>
+          {activeTab==='overview' && (
+            <div className="card animate-fadeIn">
+              <div className="card-header"><h3 className="card-title">Attendance Overview</h3></div>
+              <div className="table-container">
+                <table><thead><tr><th>Student</th><th>Roll No</th><th>Overall %</th><th>Present</th><th>Absent</th><th>Status</th></tr></thead>
+                <tbody>{API.getStudents().map(s=>{ const st=API.getAttendanceStats(s.id); return (
+                  <tr key={s.id}><td className="td-name"><div className="td-avatar">{s.name.charAt(0)}</div><div className="td-info"><span className="name">{s.name}</span><span className="sub">{API.getClassById(s.classId)?.name}</span></div></td>
+                  <td>{s.rollNo}</td><td><div className="progress-bar" style={{width:'80px'}}><div className={`fill ${st.percentage>80?'success':st.percentage>70?'warning':'danger'}`} style={{width:`${st.percentage}%`}}></div></div> {st.percentage}%</td>
+                  <td>{st.present}</td><td>{st.absent}</td>
+                  <td><span className={`badge ${st.percentage>=75?'badge-success':'badge-danger'}`}>{st.percentage>=75?'Good':'At Risk'}</span></td></tr>
+                );})}</tbody>
+                </table>
+              </div>
+            </div>
+          )}
+          {activeTab==='mark' && (
+            <div className="card animate-fadeIn">
+              <div className="card-header"><h3 className="card-title">Mark Attendance - {new Date(selectedDate).toDateString()}</h3></div>
+              <div style={{marginBottom:'20px',display:'flex',gap:'12px'}}>
+                <input type="date" className="input" style={{width:'auto'}} value={selectedDate} onChange={e=>setSelectedDate(e.target.value)} />
+                <select className="input" style={{width:'auto'}} value={selectedClass} onChange={e=>setSelectedClass(e.target.value)}>
+                  {API.getClasses().map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+              </div>
+              <div className="table-container">
+                <table><thead><tr><th>Student</th><th>Roll No</th><th>Mark Status</th></tr></thead>
+                <tbody>{API.getStudents().filter(s=>s.classId===selectedClass).map(s=> {
+                  const todayRec = API.getAttendance(s.id,null,selectedDate);
+                  const currentStatus = todayRec.length>0 ? todayRec[0].status : null;
+                  return (
+                    <tr key={s.id}><td className="td-name"><div className="td-avatar">{s.name.charAt(0)}</div><div className="td-info"><span className="name">{s.name}</span></div></td>
+                    <td>{s.rollNo}</td>
+                    <td><div style={{display:'flex',gap:'6px'}}>
+                      <button className={`btn btn-sm ${currentStatus==='PRESENT'?'btn-success':'btn-secondary'}`} onClick={()=>handleBulkAttendance(s.id,'PRESENT')}><i className="fas fa-check"></i> Present</button>
+                      <button className={`btn btn-sm ${currentStatus==='LATE'?'btn-warning':'btn-secondary'}`} onClick={()=>handleBulkAttendance(s.id,'LATE')}><i className="fas fa-clock"></i> Late</button>
+                      <button className={`btn btn-sm ${currentStatus==='ABSENT'?'btn-danger':'btn-secondary'}`} onClick={()=>handleBulkAttendance(s.id,'ABSENT')}><i className="fas fa-times"></i> Absent</button>
+                    </div></td></tr>
+                  );
+                })}</tbody>
+                </table>
+              </div>
+            </div>
+          )}
+          {activeTab==='qr' && (
+            <div className="card animate-fadeIn" style={{textAlign:'center',padding:'40px'}}>
+              <div className="card-header" style={{justifyContent:'center'}}><h3 className="card-title"><i className="fas fa-qrcode"></i> QR Attendance Session</h3></div>
+              <p style={{color:'var(--text-secondary)',marginBottom:'24px'}}>Start a QR session for students to scan and mark their attendance automatically.</p>
+              <button className="btn btn-primary btn-lg" onClick={startQR} disabled={qrActive} style={{minWidth:'200px'}}>
+                {qrActive?<><i className="fas fa-circle-notch fa-spin"></i> Active...</>:<><i className="fas fa-play"></i> Start QR Session</>}
+              </button>
+              {qrActive && (
+                <div style={{marginTop:'32px'}}>
+                  <div className="qr-placeholder animate-pulse-glow" style={{margin:'0 auto'}}><i className="fas fa-qrcode"></i></div>
+                  <div className="qr-timer">{Math.floor(timer/60)}:{(timer%60).toString().padStart(2,'0')}</div>
+                  <p style={{color:'var(--text-secondary)'}}>Students can scan this code to mark attendance</p>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // ===================== TIMETABLE =====================
+    function TimetablePage({ user, role, viewAs }) {
+      const effectiveRole = viewAs || role;
+      const [selectedClass, setSelectedClass] = useState('cls1');
+      const [selectedDay, setSelectedDay] = useState('Monday');
+      const [showAddModal, setShowAddModal] = useState(false);
+      const [newEntry, setNewEntry] = useState({ day:'Monday', subjectId:'', teacherId:'', time:'', room:'', type:'LECTURE' });
+      const days = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+      const entries = API.getTimetable(selectedClass, selectedDay);
+      const canEdit = effectiveRole==='ADMIN' || effectiveRole==='TEACHER';
+
+      const addEntry = () => {
+        if (!newEntry.subjectId || !newEntry.teacherId || !newEntry.time || !newEntry.room) {
+          showToast('Please fill all fields','error'); return;
+        }
+        API.addTimetableEntry({ classId:selectedClass, ...newEntry });
+        setShowAddModal(false); setNewEntry({ day:'Monday', subjectId:'', teacherId:'', time:'', room:'', type:'LECTURE' });
+        showToast('Timetable entry added successfully','success');
+      };
+
+      const deleteEntry = (id) => { API.deleteTimetableEntry(id); showToast('Entry deleted','info'); };
+
+      return (
+        <div>
+          <div style={{display:'flex',gap:'12px',flexWrap:'wrap',marginBottom:'24px',alignItems:'center'}}>
+            <select className="input" style={{width:'auto',minWidth:'160px'}} value={selectedClass} onChange={e=>setSelectedClass(e.target.value)}>
+              {API.getClasses().map(c=><option key={c.id} value={c.id}>{c.name} - {API.getDepartmentById ? API.getDepartmentById(c.department)?.code : c.department}</option>)}
+            </select>
+            <div className="tabs" style={{margin:0}}>
+              {days.map(d=><button key={d} className={`tab ${selectedDay===d?'active':''}`} onClick={()=>setSelectedDay(d)}>{d.slice(0,3)}</button>)}
+            </div>
+            {canEdit && <button className="btn btn-primary btn-sm" onClick={()=>setShowAddModal(true)} style={{marginLeft:'auto'}}><i className="fas fa-plus"></i> Add Entry</button>}
+          </div>
+          <div className="card animate-fadeIn">
+            <div className="card-header"><h3 className="card-title">{selectedDay} - {API.getClasses().find(c=>c.id===selectedClass)?.name}</h3></div>
+            {entries.length>0 ? (
+              <div className="table-container">
+                <table><thead><tr><th>Time</th><th>Subject</th><th>Teacher</th><th>Room</th><th>Type</th>{canEdit&&<th>Action</th>}</tr></thead>
+                <tbody>{entries.sort((a,b)=>a.time.localeCompare(b.time)).map(e=> {
+                  const sub = API.getSubjectById(e.subjectId);
+                  const teacher = API.getTeachers().find(t=>t.id===e.teacherId);
+                  return (
+                    <tr key={e.id}><td><span className="badge badge-primary">{e.time}</span></td>
+                    <td><strong>{sub?.name}</strong><div style={{fontSize:'12px',color:'var(--text-light)'}}>{sub?.code}</div></td>
+                    <td>{teacher?.name}</td><td>{e.room}</td>
+                    <td><span className={`badge ${e.type==='LAB'?'badge-warning':'badge-info'}`}>{e.type}</span></td>
+                    {canEdit&&<td><button className="btn btn-sm btn-danger" onClick={()=>deleteEntry(e.id)}><i className="fas fa-trash"></i></button></td>}</tr>
+                  );
+                })}</tbody>
+                </table>
+              </div>
+            ) : <EmptyState icon="fa-calendar-times" title="No classes" description={`No timetable entries for ${selectedDay}`} />}
+          </div>
+          {showAddModal && (
+            <Modal isOpen={showAddModal} onClose={()=>setShowAddModal(false)} title="Add Timetable Entry" footer={<><button className="btn btn-secondary" onClick={()=>setShowAddModal(false)}>Cancel</button><button className="btn btn-primary" onClick={addEntry}><i className="fas fa-plus"></i> Add Entry</button></>}>
+              <div className="form-group"><label className="form-label">Day</label><select className="input" value={newEntry.day} onChange={e=>setNewEntry({...newEntry,day:e.target.value})}>{days.map(d=><option key={d}>{d}</option>)}</select></div>
+              <div className="form-group"><label className="form-label">Subject</label><select className="input" value={newEntry.subjectId} onChange={e=>setNewEntry({...newEntry,subjectId:e.target.value})}><option value="">Select Subject</option>{API.getSubjects().map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</select></div>
+              <div className="form-group"><label className="form-label">Teacher</label><select className="input" value={newEntry.teacherId} onChange={e=>setNewEntry({...newEntry,teacherId:e.target.value})}><option value="">Select Teacher</option>{API.getTeachers().map(t=><option key={t.id} value={t.id}>{t.name}</option>)}</select></div>
+              <div className="form-group"><label className="form-label">Time Slot</label><input className="input" placeholder="e.g. 09:00-10:30" value={newEntry.time} onChange={e=>setNewEntry({...newEntry,time:e.target.value})} /></div>
+              <div className="form-group"><label className="form-label">Room</label><input className="input" placeholder="e.g. L-301" value={newEntry.room} onChange={e=>setNewEntry({...newEntry,room:e.target.value})} /></div>
+              <div className="form-group"><label className="form-label">Type</label><select className="input" value={newEntry.type} onChange={e=>setNewEntry({...newEntry,type:e.target.value})}><option>LECTURE</option><option>LAB</option><option>TUTORIAL</option></select></div>
+            </Modal>
+          )}
+        </div>
+      );
+    }
+
+    // ===================== CURRICULUM =====================
+    function CurriculumPage({ role, viewAs }) {
+      const [selectedSubject, setSelectedSubject] = useState('sub1');
+      const [expandedUnit, setExpandedUnit] = useState(null);
+      const subjects = API.getSubjects();
+      const curriculum = API.getCurriculum(selectedSubject);
+      const grouped = curriculum.reduce((acc,item)=>{ if(!acc[item.unit]) acc[item.unit]=[]; acc[item.unit].push(item); return acc; },{});
+
+      return (
+        <div>
+          <div style={{display:'flex',gap:'12px',flexWrap:'wrap',marginBottom:'24px'}}>
+            {subjects.map(s=> (
+              <button key={s.id} className={`btn btn-${selectedSubject===s.id?'primary':'secondary'} btn-sm`} onClick={()=>{setSelectedSubject(s.id); setExpandedUnit(null);}}>
+                {s.name} <span className="badge badge-secondary" style={{marginLeft:'6px'}}>{s.code}</span>
+              </button>
+            ))}
+          </div>
+          <div className="grid-2">
+            {Object.entries(grouped).map(([unit,items])=> (
+              <div key={unit} className="card animate-fadeIn">
+                <div className="card-header" style={{cursor:'pointer'}} onClick={()=>setExpandedUnit(expandedUnit===unit?null:unit)}>
+                  <h3 className="card-title"><i className="fas fa-layer-group"></i> Unit {unit}</h3>
+                  <i className={`fas fa-chevron-${expandedUnit===unit?'up':'down'}`} style={{color:'var(--text-light)'}}></i>
+                </div>
+                <div style={{display:expandedUnit===unit||expandedUnit===null?'block':'none'}}>
+                  {items.map((c,i)=> (
+                    <div key={c.id} style={{padding:'14px 0',borderBottom:i<items.length-1?'1px solid var(--border-light)':'none'}}>
+                      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'6px'}}>
+                        <span style={{fontWeight:700,fontSize:'14px'}}>{c.order}. {c.title}</span>
+                        <span className="badge badge-secondary">{c.duration}</span>
+                      </div>
+                      <p style={{color:'var(--text-secondary)',fontSize:'13px',marginBottom:'10px'}}>{c.description}</p>
+                      <div style={{display:'flex',alignItems:'center',gap:'12px'}}>
+                        <div className="progress-bar" style={{flex:1}}><div className="fill primary" style={{width:`${Math.floor(Math.random()*30+70)}%`}}></div></div>
+                        <span style={{fontSize:'12px',color:'var(--text-light)',fontWeight:600}}>{c.resources} resources</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    // ===================== QUIZ =====================
+    function QuizPage({ user, role, viewAs }) {
+      const effectiveRole = viewAs || role;
+      const [selectedQuiz, setSelectedQuiz] = useState(null);
+      const [answers, setAnswers] = useState({});
+      const [submitted, setSubmitted] = useState(false);
+      const [score, setScore] = useState(null);
+      const [timeLeft, setTimeLeft] = useState(0);
+      const [activeTab, setActiveTab] = useState('available');
+      const student = API.getStudentByUserId(user.id);
+      const quizzes = API.getQuizzes();
+
+      useEffect(() => {
+        let interval;
+        if (selectedQuiz && !submitted && timeLeft > 0) {
+          interval = setInterval(() => setTimeLeft(t=>{ if(t<=1){ submitQuiz(); return 0; } return t-1; }), 1000);
+        }
+        return () => clearInterval(interval);
+      }, [selectedQuiz, submitted, timeLeft]);
+
+      const handleAnswer = (qId, oi) => setAnswers({...answers, [qId]: oi});
+
+      const submitQuiz = () => {
+        if (!selectedQuiz) return;
+        let correct=0; selectedQuiz.questions.forEach(q=>{ if(answers[q.id]===q.answer) correct++; });
+        const pct=Math.round((correct/selectedQuiz.questions.length)*100); setScore(pct); setSubmitted(true);
+        showToast(`Quiz submitted! Score: ${pct}%`, pct>=60?'success':'warning');
+        if (student) {
+          DB.quizAttempts.push({ id:`qa-${Date.now()}`, studentId:student.id, quizId:selectedQuiz.id, score:pct, total:selectedQuiz.questions.length, date:new Date().toISOString().split('T')[0], timeTaken:selectedQuiz.duration*60-timeLeft });
+          const att=DB.quizAttempts.filter(a=>a.studentId===student.id);
+          student.quizAverage=Math.round(att.reduce((s,a)=>s+a.score,0)/att.length);
+        }
+      };
+
+      const startQuiz = (quiz) => { setSelectedQuiz(quiz); setSubmitted(false); setAnswers({}); setScore(null); setTimeLeft(quiz.duration*60); };
+
+      if (effectiveRole==='STUDENT') {
+        const myAttempts = student ? API.getQuizAttempts(student.id) : [];
+        return (
+          <div>
+            <div className="stats-grid">
+              <StatCard icon="fa-pencil-alt" iconClass="purple" label="Quizzes Taken" value={myAttempts.length} delay={1} />
+              <StatCard icon="fa-percentage" iconClass="green" label="Average Score" value={student?.quizAverage||0} suffix="%" delay={2} />
+              <StatCard icon="fa-trophy" iconClass="orange" label="Best Score" value={myAttempts.length>0?Math.max(...myAttempts.map(a=>a.score)):0} suffix="%" delay={3} />
+            </div>
+            <div className="tabs">
+              <button className={`tab ${activeTab==='available'?'active':''}`} onClick={()=>setActiveTab('available')}>Available</button>
+              <button className={`tab ${activeTab==='history'?'active':''}`} onClick={()=>setActiveTab('history')}>History</button>
+            </div>
+            {activeTab==='available' && !selectedQuiz && (
+              <div className="grid-2">{quizzes.filter(q=>q.published).map(q=> (
+                <div key={q.id} className="card animate-fadeIn">
+                  <div className="card-header"><h3 className="card-title">{q.title}</h3><span className={`badge ${q.difficulty==='Easy'?'badge-success':q.difficulty==='Medium'?'badge-warning':'badge-danger'}`}>{q.difficulty}</span></div>
+                  <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:'12px',marginBottom:'16px'}}>
+                    <div style={{textAlign:'center',padding:'10px',background:'var(--bg-primary)',borderRadius:'10px'}}><div style={{fontWeight:800}}>{q.questions.length}</div><div style={{fontSize:'11px',color:'var(--text-light)'}}>Questions</div></div>
+                    <div style={{textAlign:'center',padding:'10px',background:'var(--bg-primary)',borderRadius:'10px'}}><div style={{fontWeight:800}}>{q.duration}</div><div style={{fontSize:'11px',color:'var(--text-light)'}}>Minutes</div></div>
+                    <div style={{textAlign:'center',padding:'10px',background:'var(--bg-primary)',borderRadius:'10px'}}><div style={{fontWeight:800}}>{q.marks}</div><div style={{fontSize:'11px',color:'var(--text-light)'}}>Marks</div></div>
+                  </div>
+                  <button className="btn btn-primary btn-block" onClick={()=>startQuiz(q)}><i className="fas fa-play"></i> Start Quiz</button>
+                </div>
+              ))}</div>
+            )}
+            {selectedQuiz && !submitted && (
+              <div className="card animate-fadeIn">
+                <div className="card-header">
+                  <h3 className="card-title">{selectedQuiz.title}</h3>
+                  <div style={{display:'flex',alignItems:'center',gap:'12px'}}>
+                    <span className="badge badge-danger" style={{fontSize:'14px',padding:'6px 14px'}}><i className="fas fa-clock"></i> {Math.floor(timeLeft/60)}:{(timeLeft%60).toString().padStart(2,'0')}</span>
+                    <button className="btn btn-ghost btn-sm" onClick={()=>{setSelectedQuiz(null); setSubmitted(false);}}><i className="fas fa-times"></i></button>
+                  </div>
+                </div>
+                {selectedQuiz.questions.map((q,idx)=> (
+                  <div key={q.id} style={{padding:'20px',borderBottom:'1px solid var(--border-light)',background:idx%2===0?'var(--bg-primary)':'transparent',borderRadius:'12px',marginBottom:'8px'}}>
+                    <p style={{fontWeight:700,marginBottom:'12px',fontSize:'15px'}}><span style={{color:'var(--primary)'}}>Q{idx+1}.</span> {q.text}</p>
+                    <div style={{display:'flex',flexDirection:'column',gap:'8px'}}>
+                      {q.options.map((opt,oi)=> (
+                        <label key={oi} style={{display:'flex',alignItems:'center',gap:'10px',padding:'10px 14px',borderRadius:'10px',border:'1.5px solid var(--border-color)',cursor:'pointer',transition:'all 0.2s',background:answers[q.id]===oi?'var(--primary)':'var(--bg-card)',color:answers[q.id]===oi?'white':'var(--text-primary)'}}>
+                          <input type="radio" name={`q-${q.id}`} checked={answers[q.id]===oi} onChange={()=>handleAnswer(q.id,oi)} style={{accentColor:'white'}} />
+                          {opt}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+                <div style={{padding:'20px',display:'flex',justifyContent:'space-between'}}>
+                  <button className="btn btn-secondary" onClick={()=>{setSelectedQuiz(null); setSubmitted(false);}}><i className="fas fa-times"></i> Cancel</button>
+                  <button className="btn btn-success btn-lg" onClick={submitQuiz}><i className="fas fa-check"></i> Submit Quiz</button>
+                </div>
+              </div>
+            )}
+            {submitted && (
+              <div className="card animate-scaleIn" style={{textAlign:'center',padding:'60px 40px'}}>
+                <div style={{fontSize:'72px',marginBottom:'16px'}}>{score>=80?'🎉':score>=60?'👍':'📚'}</div>
+                <h1 style={{fontSize:'48px',fontWeight:800,fontFamily:'Space Grotesk',color:score>=60?'var(--success)':'var(--warning)'}}>{score}%</h1>
+                <p style={{color:'var(--text-secondary)',fontSize:'16px',marginTop:'8px'}}>{score>=80?'Outstanding performance!':score>=60?'Good job! Keep practicing.':'Keep working hard. Review the material.'}</p>
+                <div style={{marginTop:'24px',display:'flex',gap:'12px',justifyContent:'center'}}>
+                  <button className="btn btn-primary" onClick={()=>{setSelectedQuiz(null); setSubmitted(false); setAnswers({}); setScore(null);}}><i className="fas fa-redo"></i> Try Another</button>
+                  <button className="btn btn-secondary" onClick={()=>setActiveTab('history')}><i className="fas fa-history"></i> View History</button>
+                </div>
+              </div>
+            )}
+            {activeTab==='history' && (
+              <div className="card animate-fadeIn">
+                <div className="card-header"><h3 className="card-title">Quiz History</h3></div>
+                <div className="table-container">
+                  <table><thead><tr><th>Quiz</th><th>Score</th><th>Date</th><th>Time Taken</th></tr></thead>
+                  <tbody>{myAttempts.map((a,i)=> {
+                    const quiz = API.getQuizById(a.quizId);
+                    return <tr key={i}><td>{quiz?.title}</td><td><span className={`badge ${a.score>=60?'badge-success':'badge-warning'}`}>{a.score}%</span></td><td>{a.date}</td><td>{a.timeTaken ? `${Math.floor(a.timeTaken/60)}m ${a.timeTaken%60}s` : 'N/A'}</td></tr>;
+                  })}</tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      }
+
+      return (
+        <div>
+          <div className="card animate-fadeIn">
+            <div className="card-header"><h3 className="card-title">Quiz Management</h3><button className="btn btn-primary btn-sm" onClick={()=>showToast('Quiz creation module opened','info')}><i className="fas fa-plus"></i> Create Quiz</button></div>
+            <div className="table-container">
+              <table><thead><tr><th>Title</th><th>Subject</th><th>Questions</th><th>Difficulty</th><th>Status</th><th>Actions</th></tr></thead>
+              <tbody>{quizzes.map(q=> (
+                <tr key={q.id}><td><strong>{q.title}</strong></td><td>{API.getSubjectById(q.subjectId)?.name}</td><td>{q.questions.length}</td>
+                <td><span className={`badge ${q.difficulty==='Easy'?'badge-success':q.difficulty==='Medium'?'badge-warning':'badge-danger'}`}>{q.difficulty}</span></td>
+                <td><span className={`badge ${q.published?'badge-success':'badge-secondary'}`}>{q.published?'Published':'Draft'}</span></td>
+                <td><button className="btn btn-sm btn-secondary"><i className="fas fa-edit"></i></button> <button className="btn btn-sm btn-primary"><i className="fas fa-chart-bar"></i></button></td></tr>
+              ))}</tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ===================== ASSIGNMENTS =====================
+    function AssignmentsPage({ user, role, viewAs }) {
+      const effectiveRole = viewAs || role;
+      const [activeTab, setActiveTab] = useState('active');
+      const student = API.getStudentByUserId(user.id);
+      const teacher = API.getTeacherByUserId(user.id);
+      const assignments = effectiveRole==='STUDENT' ? API.getAssignments(student?.classId) : API.getAssignments();
+      const submissions = student ? API.getSubmissions(null, student.id) : [];
+
+      if (effectiveRole==='STUDENT') return (
+        <div>
+          <div className="tabs">
+            <button className={`tab ${activeTab==='active'?'active':''}`} onClick={()=>setActiveTab('active')}>Active ({assignments.filter(a=>a.status==='ACTIVE').length})</button>
+            <button className={`tab ${activeTab==='submitted'?'active':''}`} onClick={()=>setActiveTab('submitted')}>Submitted</button>
+          </div>
+          {activeTab==='active' && (
+            <div className="grid-2">{assignments.filter(a=>a.status==='ACTIVE').map(a=> {
+              const sub = API.getSubmissions(a.id, student?.id);
+              const isSubmitted = sub.length > 0;
+              const daysLeft = Math.ceil((new Date(a.dueDate) - new Date()) / (1000*60*60*24));
+              return (
+                <div key={a.id} className="card animate-fadeIn">
+                  <div className="card-header"><h3 className="card-title">{a.title}</h3><span className={`badge ${daysLeft<3?'badge-danger':daysLeft<7?'badge-warning':'badge-success'}`}>{daysLeft} days left</span></div>
+                  <p style={{color:'var(--text-secondary)',fontSize:'14px',marginBottom:'12px'}}>{a.description}</p>
+                  <div style={{display:'flex',gap:'12px',marginBottom:'16px',flexWrap:'wrap'}}>
+                    <span className="badge badge-secondary"><i className="fas fa-book"></i> {API.getSubjectById(a.subjectId)?.name}</span>
+                    <span className="badge badge-secondary"><i className="fas fa-star"></i> {a.maxMarks} marks</span>
+                    <span className="badge badge-secondary"><i className="fas fa-calendar"></i> Due: {a.dueDate}</span>
+                  </div>
+                  {isSubmitted ? (
+                    <div style={{padding:'12px',background:'var(--bg-primary)',borderRadius:'10px',display:'flex',alignItems:'center',gap:'10px'}}>
+                      <i className="fas fa-check-circle" style={{color:'var(--success)',fontSize:'20px'}}></i>
+                      <span style={{fontWeight:600}}>Submitted on {sub[0].submittedAt}</span>
+                      {sub[0].status==='GRADED' && <span className="badge badge-primary" style={{marginLeft:'auto'}}>{sub[0].marks}/{a.maxMarks}</span>}
+                    </div>
+                  ) : (
+                    <button className="btn btn-primary btn-block" onClick={()=>showToast('Assignment submission opened','info')}><i className="fas fa-upload"></i> Submit Assignment</button>
+                  )}
+                </div>
+              );
+            })}</div>
+          )}
+          {activeTab==='submitted' && (
+            <div className="card animate-fadeIn">
+              <div className="card-header"><h3 className="card-title">Submission History</h3></div>
+              <div className="table-container">
+                <table><thead><tr><th>Assignment</th><th>Submitted</th><th>Status</th><th>Marks</th></tr></thead>
+                <tbody>{submissions.map((s,i)=> {
+                  const assign = assignments.find(a=>a.id===s.assignmentId);
+                  return <tr key={i}><td>{assign?.title}</td><td>{s.submittedAt}</td><td><span className={`badge ${s.status==='GRADED'?'badge-success':'badge-warning'}`}>{s.status}</span></td><td>{s.marks!==null?`${s.marks}/${assign?.maxMarks}`:'Pending'}</td></tr>;
+                })}</tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+
+      return (
+        <div>
+          <div className="card animate-fadeIn">
+            <div className="card-header"><h3 className="card-title">Assignment Management</h3><button className="btn btn-primary btn-sm" onClick={()=>showToast('Create assignment form opened','info')}><i className="fas fa-plus"></i> New Assignment</button></div>
+            <div className="table-container">
+              <table><thead><tr><th>Title</th><th>Subject</th><th>Class</th><th>Due Date</th><th>Submissions</th><th>Status</th><th>Actions</th></tr></thead>
+              <tbody>{assignments.map(a=> {
+                const subs = API.getSubmissions(a.id);
+                return <tr key={a.id}><td><strong>{a.title}</strong></td><td>{API.getSubjectById(a.subjectId)?.name}</td><td>{API.getClassById(a.classId)?.name}</td>
+                <td>{a.dueDate}</td><td>{subs.length}</td>
+                <td><span className={`badge ${a.status==='ACTIVE'?'badge-success':'badge-secondary'}`}>{a.status}</span></td>
+                <td><button className="btn btn-sm btn-secondary"><i className="fas fa-edit"></i></button> <button className="btn btn-sm btn-primary"><i className="fas fa-eye"></i></button></td></tr>;
+              })}</tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ===================== GRADES =====================
+    function GradesPage({ user, role, viewAs }) {
+      const effectiveRole = viewAs || role;
+      const student = API.getStudentByUserId(user.id);
+      const [selectedStudent, setSelectedStudent] = useState(null);
+      const grades = effectiveRole==='STUDENT' ? API.getGrades(student?.id) : API.getGrades();
+
+      if (effectiveRole==='STUDENT') return (
+        <div>
+          <div className="stats-grid">
+            <StatCard icon="fa-chart-line" iconClass="purple" label="CGPA" value={student?.cgpa||0} delay={1} />
+            <StatCard icon="fa-book" iconClass="blue" label="Subjects" value={grades.length} delay={2} />
+            <StatCard icon="fa-exclamation-circle" iconClass="red" label="Backlogs" value={student?.backlogs||0} delay={3} />
+          </div>
+          <div className="card animate-fadeIn">
+            <div className="card-header"><h3 className="card-title">Grade Card</h3></div>
+            <div className="table-container">
+              <table><thead><tr><th>Subject</th><th>Internal 1</th><th>Internal 2</th><th>Assignment</th><th>Mid Term</th><th>Total</th><th>Grade</th></tr></thead>
+              <tbody>{grades.map(g=> {
+                const sub = API.getSubjectById(g.subjectId);
+                const total = (g.internal1||0)+(g.internal2||0)+(g.assignment||0)+(g.midTerm||0);
+                const grade = total>=90?'A+':total>=80?'A':total>=70?'B':total>=60?'C':total>=50?'D':'F';
+                return <tr key={g.id}><td><strong>{sub?.name}</strong><div style={{fontSize:'12px',color:'var(--text-light)'}}>{sub?.code}</div></td>
+                <td>{g.internal1}</td><td>{g.internal2}</td><td>{g.assignment}</td><td>{g.midTerm}</td>
+                <td><strong>{total}</strong>/100</td><td><span className={`badge ${grade==='A+'||grade==='A'?'badge-success':grade==='F'?'badge-danger':'badge-warning'}`}>{grade}</span></td></tr>;
+              })}</tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      );
+
+      return (
+        <div>
+          <div className="card animate-fadeIn">
+            <div className="card-header"><h3 className="card-title">Gradebook</h3><button className="btn btn-primary btn-sm" onClick={()=>showToast('Bulk grade entry opened','info')}><i className="fas fa-plus"></i> Add Grades</button></div>
+            <div className="table-container">
+              <table><thead><tr><th>Student</th><th>Subject</th><th>Int 1</th><th>Int 2</th><th>Assign</th><th>Mid</th><th>Total</th><th>Actions</th></tr></thead>
+              <tbody>{grades.map(g=> {
+                const st = API.getStudentById(g.studentId);
+                const sub = API.getSubjectById(g.subjectId);
+                const total = (g.internal1||0)+(g.internal2||0)+(g.assignment||0)+(g.midTerm||0);
+                return <tr key={g.id}><td className="td-name"><div className="td-avatar">{st?.name.charAt(0)}</div><div className="td-info"><span className="name">{st?.name}</span><span className="sub">{st?.rollNo}</span></div></td>
+                <td>{sub?.code}</td><td>{g.internal1}</td><td>{g.internal2}</td><td>{g.assignment}</td><td>{g.midTerm}</td><td><strong>{total}</strong></td>
+                <td><button className="btn btn-sm btn-secondary"><i className="fas fa-edit"></i></button></td></tr>;
+              })}</tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ===================== LIBRARY =====================
+    function LibraryPage({ user, role, viewAs }) {
+      const [search, setSearch] = useState('');
+      const books = API.getLibraryBooks(search);
+      return (
+        <div>
+          <div className="card animate-fadeIn" style={{marginBottom:'24px'}}>
+            <div className="card-header"><h3 className="card-title"><i className="fas fa-search"></i> Search Library</h3></div>
+            <div className="input-group">
+              <input className="input" placeholder="Search by title or author..." value={search} onChange={e=>setSearch(e.target.value)} />
+              <button className="btn btn-primary"><i className="fas fa-search"></i></button>
+            </div>
+          </div>
+          <div className="grid-3">{books.map(b=> (
+            <div key={b.id} className="card animate-fadeIn">
+              <div style={{display:'flex',gap:'16px'}}>
+                <div style={{width:'60px',height:'80px',background:'var(--primary-gradient)',borderRadius:'8px',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'24px',color:'white',flexShrink:0}}><i className="fas fa-book"></i></div>
+                <div style={{flex:1,minWidth:0}}>
+                  <h4 style={{fontSize:'15px',fontWeight:700,marginBottom:'4px',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{b.title}</h4>
+                  <p style={{fontSize:'13px',color:'var(--text-secondary)',marginBottom:'8px'}}>{b.author}</p>
+                  <div style={{display:'flex',gap:'8px',flexWrap:'wrap'}}>
+                    <span className="badge badge-secondary">{b.category}</span>
+                    <span className={`badge ${b.available?'badge-success':'badge-danger'}`}>{b.available?'Available':'Issued'}</span>
+                  </div>
+                </div>
+              </div>
+              <div style={{marginTop:'16px',paddingTop:'16px',borderTop:'1px solid var(--border-light)',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                <span style={{fontSize:'12px',color:'var(--text-light)'}}>ISBN: {b.isbn}</span>
+                <span style={{fontSize:'12px',color:'var(--text-light)'}}>{b.issued}/{b.total} issued</span>
+              </div>
+            </div>
+          ))}</div>
+        </div>
+      );
+    }
+
+    // ===================== FEES =====================
+    function FeesPage({ user, role, viewAs }) {
+      const student = API.getStudentByUserId(user.id);
+      const fees = student ? API.getFees(student.id) : [];
+      return (
+        <div>
+          {fees.map(f=> (
+            <div key={f.id} className="card animate-fadeIn" style={{marginBottom:'20px'}}>
+              <div className="card-header"><h3 className="card-title"><i className="fas fa-rupee-sign"></i> Fee Statement - Semester {f.semester}</h3><span className={`badge ${f.status==='PAID'?'badge-success':'badge-warning'}`}>{f.status}</span></div>
+              <div className="grid-3" style={{marginBottom:'20px'}}>
+                <div style={{padding:'16px',background:'var(--bg-primary)',borderRadius:'12px',textAlign:'center'}}>
+                  <div style={{fontSize:'12px',color:'var(--text-light)',textTransform:'uppercase',letterSpacing:'0.5px',marginBottom:'4px'}}>Total</div>
+                  <div style={{fontSize:'24px',fontWeight:800}}>₹{f.total.toLocaleString()}</div>
+                </div>
+                <div style={{padding:'16px',background:'var(--bg-primary)',borderRadius:'12px',textAlign:'center'}}>
+                  <div style={{fontSize:'12px',color:'var(--text-light)',textTransform:'uppercase',letterSpacing:'0.5px',marginBottom:'4px'}}>Paid</div>
+                  <div style={{fontSize:'24px',fontWeight:800,color:'var(--success)'}}>₹{f.paid.toLocaleString()}</div>
+                </div>
+                <div style={{padding:'16px',background:'var(--bg-primary)',borderRadius:'12px',textAlign:'center'}}>
+                  <div style={{fontSize:'12px',color:'var(--text-light)',textTransform:'uppercase',letterSpacing:'0.5px',marginBottom:'4px'}}>Due</div>
+                  <div style={{fontSize:'24px',fontWeight:800,color:f.due>0?'var(--danger)':'var(--success)'}}>₹{f.due.toLocaleString()}</div>
+                </div>
+              </div>
+              <div style={{marginBottom:'16px'}}>
+                <div style={{display:'flex',justifyContent:'space-between',marginBottom:'8px',fontSize:'14px'}}>
+                  <span>Payment Progress</span><span>{Math.round((f.paid/f.total)*100)}%</span>
+                </div>
+                <div className="progress-bar"><div className="fill success" style={{width:`${(f.paid/f.total)*100}%`}}></div></div>
+              </div>
+              <div className="table-container">
+                <table><thead><tr><th>Component</th><th>Amount</th></tr></thead>
+                <tbody>
+                  <tr><td>Tuition Fee</td><td>₹{f.tuition.toLocaleString()}</td></tr>
+                  <tr><td>Library Fee</td><td>₹{f.library.toLocaleString()}</td></tr>
+                  <tr><td>Laboratory Fee</td><td>₹{f.lab.toLocaleString()}</td></tr>
+                  <tr><td>Hostel Fee</td><td>₹{f.hostel.toLocaleString()}</td></tr>
+                </tbody>
+              </table>
+              </div>
+              {f.due > 0 && <button className="btn btn-primary btn-block" style={{marginTop:'16px'}} onClick={()=>showToast('Payment gateway opened','info')}><i className="fas fa-credit-card"></i> Pay Now</button>}
+            </div>
+          ))}
+        </div>
+      );
+    }
+
+    // ===================== AI ASSISTANT =====================
+    function AIAssistantPage({ user }) {
+      const [query, setQuery] = useState('');
+      const [messages, setMessages] = useState([{ role:'ai', content:'Hello! I\'m your AI Academic Assistant. I can help you with:\n\n• SQL queries and database concepts\n• Normalization and ER modeling\n• Cloud computing fundamentals\n• Operating systems concepts\n• General academic guidance\n\nWhat would you like to learn about?' }]);
+      const [loading, setLoading] = useState(false);
+      const chatEndRef = useRef(null);
+
+      useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
+
+      const askQuestion = () => {
+        if (!query.trim()) return;
+        setMessages(prev=>[...prev, {role:'user', content:query}]);
+        setLoading(true); setQuery('');
+        setTimeout(() => {
+          const res = API.askAI(query);
+          setMessages(prev=>[...prev, {role:'ai', content:res.answer, sources:res.sources||[]}]);
+          setLoading(false);
+        }, 800);
+      };
+
+      return (
+        <div className="card animate-fadeIn" style={{minHeight:'600px',display:'flex',flexDirection:'column'}}>
+          <div className="card-header"><h3 className="card-title"><i className="fas fa-robot" style={{color:'var(--primary)'}}></i> AI Academic Assistant</h3><span className="badge badge-success"><i className="fas fa-circle" style={{fontSize:'8px'}}></i> Online</span></div>
+          <div style={{flex:1,overflowY:'auto',maxHeight:'500px',marginBottom:'16px',padding:'8px'}}>
+            {messages.map((msg,i)=> (
+              <div key={i} className={`chat-message ${msg.role}`}>
+                <div className={`avatar ${msg.role}`}>{msg.role==='ai'?<i className="fas fa-robot"></i>:user?.name?.charAt(0)}</div>
+                <div className="bubble">
+                  {msg.content.split('\n').map((line,li)=> <div key={li} style={{marginBottom:line.startsWith('•')?'4px':'0'}}>{line}</div>)}
+                  {msg.sources && msg.sources.length>0 && <div className="sources">{msg.sources.map(s=><span key={s.title}><i className="fas fa-book"></i> {s.title}</span>)}</div>}
+                </div>
+              </div>
+            ))}
+            {loading && <div className="chat-message ai"><div className="avatar ai"><i className="fas fa-robot"></i></div><div className="bubble"><div className="typing-indicator"><span></span><span></span><span></span></div></div></div>}
+            <div ref={chatEndRef}></div>
+          </div>
+          <div style={{display:'flex',gap:'8px',padding:'8px',background:'var(--bg-primary)',borderRadius:'14px',border:'1.5px solid var(--border-color)'}}>
+            <input className="input" style={{border:'none',background:'transparent',boxShadow:'none'}} placeholder="Ask about SQL, normalization, cloud..." value={query} onChange={e=>setQuery(e.target.value)} onKeyDown={e=>e.key==='Enter'&&askQuestion()} />
+            <button className="btn btn-primary btn-icon" onClick={askQuestion} disabled={loading}><i className="fas fa-paper-plane"></i></button>
+          </div>
+          <div style={{marginTop:'12px',display:'flex',gap:'8px',flexWrap:'wrap'}}>
+            {['SQL Joins','Normalization','Cloud Models','CPU Scheduling','ACID Properties'].map(s=> (
+              <button key={s} className="btn btn-secondary btn-sm" onClick={()=>{setQuery(s); setTimeout(askQuestion,100);}}>{s}</button>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    // ===================== ACTION CENTER =====================
+    function ActionCenterPage({ user }) {
+      const [suggestions, setSuggestions] = useState([]);
+      const [interventions, setInterventions] = useState([]);
+      const [filter, setFilter] = useState('ALL');
+
+      useEffect(() => {
+        const all=API.getStudents(); let s=[]; all.forEach(st=>{ s.push(...API.generateAISuggestions(st.id)); });
+        setSuggestions(s); setInterventions(API.getInterventions());
+      }, []);
+
+      const handleAction = (action, studentId) => {
+        if (action==='Assign practice') {
+          const student=API.getStudentById(studentId);
+          const newInt=API.createIntervention({ studentId, studentName:student?.name||'Student', teacherId:user?.id||'t1', reason:'Practice assigned by teacher', suggestedAction:'Practice work', actionTaken:'Assigned practice', evidence:'Teacher intervention' });
+          setInterventions(prev=>[...prev,newInt]); showToast('Practice assigned successfully','success');
+        } else if (action==='Complete demo flow') {
+          const res=API.completeDemoFlow(studentId);
+          if(res) { showToast('Demo completed! Student improved significantly','success'); setInterventions(API.getInterventions()); const all=API.getStudents(); let s=[]; all.forEach(st=>{ s.push(...API.generateAISuggestions(st.id)); }); setSuggestions(s); }
+        } else showToast(`Action: ${action}`,'info');
+      };
+
+      const filtered = filter==='ALL' ? suggestions : suggestions.filter(s=>s.priority===filter);
+
+      return (
+        <div>
+          <div className="card card-gradient animate-fadeIn" style={{marginBottom:'24px'}}>
+            <h2 style={{fontSize:'24px',marginBottom:'8px'}}><i className="fas fa-bullhorn"></i> Action Center</h2>
+            <p style={{opacity:0.8,fontSize:'15px'}}>Data → Insight → Action → Result. AI-powered intervention tracking.</p>
+          </div>
+          <div className="stats-grid">
+            <StatCard icon="fa-exclamation-circle" iconClass="red" label="Critical" value={suggestions.filter(s=>s.priority==='CRITICAL').length} delay={1} />
+            <StatCard icon="fa-exclamation-triangle" iconClass="orange" label="Attention" value={suggestions.filter(s=>s.priority==='ATTENTION').length} delay={2} />
+            <StatCard icon="fa-check-circle" iconClass="green" label="Resolved" value={interventions.filter(i=>i.status==='COMPLETED').length} delay={3} />
+            <StatCard icon="fa-spinner" iconClass="blue" label="In Progress" value={interventions.filter(i=>i.status==='IN_PROGRESS').length} delay={4} />
+          </div>
+          <div className="tabs">
+            <button className={`tab ${filter==='ALL'?'active':''}`} onClick={()=>setFilter('ALL')}>All ({suggestions.length})</button>
+            <button className={`tab ${filter==='CRITICAL'?'active':''}`} onClick={()=>setFilter('CRITICAL')}>Critical ({suggestions.filter(s=>s.priority==='CRITICAL').length})</button>
+            <button className={`tab ${filter==='ATTENTION'?'active':''}`} onClick={()=>setFilter('ATTENTION')}>Attention ({suggestions.filter(s=>s.priority==='ATTENTION').length})</button>
+          </div>
+          <div className="card animate-fadeIn">
+            <div className="card-header"><h3 className="card-title">AI Recommendations</h3></div>
+            {filtered.length>0 ? filtered.map((s,i)=> (
+              <div key={i} className={`action-card ${s.priority==='CRITICAL'?'critical':'attention'}`}>
+                <div className="action-header"><strong>{s.studentName}</strong><span className={`badge ${s.priority==='CRITICAL'?'badge-danger':'badge-warning'}`}>{s.priority}</span></div>
+                <div className="action-reason">{s.reason}</div>
+                <div className="action-evidence">{s.evidence}</div>
+                <div className="action-buttons">
+                  <button className="btn btn-sm btn-primary" onClick={()=>handleAction('Assign practice',s.studentId)}><i className="fas fa-check"></i> Assign Practice</button>
+                  <button className="btn btn-sm btn-secondary" onClick={()=>showToast(`Message sent to ${s.studentName}`,'success')}><i className="fas fa-envelope"></i> Message</button>
+                  {s.studentName==='Aarav Shah' && <button className="btn btn-sm btn-success" onClick={()=>handleAction('Complete demo flow',s.studentId)}><i className="fas fa-rocket"></i> Simulate Improvement</button>}
+                </div>
+              </div>
+            )) : <EmptyState icon="fa-check-circle" title="All clear!" description="No students match the selected filter." />}
+          </div>
+          <div className="card animate-fadeIn" style={{marginTop:'24px'}}>
+            <div className="card-header"><h3 className="card-title">Intervention History</h3></div>
+            <div className="table-container">
+              <table><thead><tr><th>Student</th><th>Action</th><th>Status</th><th>Before</th><th>After</th></tr></thead>
+              <tbody>{interventions.map(i=> (
+                <tr key={i.id}><td className="td-name"><div className="td-avatar">{i.studentName.charAt(0)}</div><div className="td-info"><span className="name">{i.studentName}</span></div></td>
+                <td>{i.actionTaken||i.suggestedAction}</td>
+                <td><span className={`badge ${i.status==='COMPLETED'?'badge-success':i.status==='IN_PROGRESS'?'badge-primary':'badge-warning'}`}>{i.status}</span></td>
+                <td>{i.beforeScore||'N/A'}</td><td>{i.afterScore||'Pending'}</td></tr>
+              ))}</tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ===================== ANALYTICS =====================
+    function AnalyticsPage({ role, viewAs }) {
+      const effectiveRole = viewAs || role;
+      const [chartType, setChartType] = useState('performance');
+      const chartRef1 = useRef(null);
+      const chartRef2 = useRef(null);
+      const chartInstance1 = useRef(null);
+      const chartInstance2 = useRef(null);
+
+      useEffect(() => {
+        if (chartRef1.current) {
+          if (chartInstance1.current) chartInstance1.current.destroy();
+          const ctx = chartRef1.current.getContext('2d');
+          const students = API.getStudents();
+          chartInstance1.current = new Chart(ctx, {
+            type: chartType==='performance'?'bar':'line',
+            data: { labels: students.map(s=>s.name.split(' ')[0]), datasets: [
+              { label:'Attendance %', data: students.map(s=>s.attendance||0), backgroundColor:'rgba(99,102,241,0.7)', borderColor:'#6366f1', borderWidth:2, borderRadius:6 },
+              { label:'Quiz Avg %', data: students.map(s=>s.quizAverage||0), backgroundColor:'rgba(16,185,129,0.7)', borderColor:'#10b981', borderWidth:2, borderRadius:6 }
+            ]},
+            options: { responsive:true, plugins:{legend:{position:'top',labels:{font:{family:'Inter'}}}}, scales:{y:{beginAtZero:true,max:100,grid:{color:'var(--border-color)'}}}, animation:{duration:1000,easing:'easeOutQuart'} }
+          });
+        }
+        if (chartRef2.current) {
+          if (chartInstance2.current) chartInstance2.current.destroy();
+          const ctx = chartRef2.current.getContext('2d');
+          const students = API.getStudents();
+          const ranges = {'90-100':0,'80-89':0,'70-79':0,'60-69':0,'Below 60':0};
+          students.forEach(s=>{ const avg=s.quizAverage||0; if(avg>=90) ranges['90-100']++; else if(avg>=80) ranges['80-89']++; else if(avg>=70) ranges['70-79']++; else if(avg>=60) ranges['60-69']++; else ranges['Below 60']++; });
+          chartInstance2.current = new Chart(ctx, {
+            type: 'doughnut',
+            data: { labels: Object.keys(ranges), datasets: [{ data: Object.values(ranges), backgroundColor:['#10b981','#6366f1','#f59e0b','#ef4444','#94a3b8'], borderWidth:0 }] },
+            options: { responsive:true, plugins:{legend:{position:'right'}}, cutout:'65%', animation:{animateScale:true,animateRotate:true} }
+          });
+        }
+        return () => { if(chartInstance1.current) chartInstance1.current.destroy(); if(chartInstance2.current) chartInstance2.current.destroy(); };
+      }, [chartType]);
+
+      const students = API.getStudents();
+      const avgAttendance = Math.round(students.reduce((s,a)=>s+(a.attendance||0),0)/students.length);
+      const avgQuiz = Math.round(students.reduce((s,a)=>s+(a.quizAverage||0),0)/students.length);
+      const avgCgpa = (students.reduce((s,a)=>s+(a.cgpa||0),0)/students.length).toFixed(2);
+
+      return (
+        <div>
+          <div className="stats-grid">
+            <StatCard icon="fa-calendar-check" iconClass="green" label="Avg Attendance" value={avgAttendance} suffix="%" delay={1} />
+            <StatCard icon="fa-pencil-alt" iconClass="purple" label="Avg Quiz" value={avgQuiz} suffix="%" delay={2} />
+            <StatCard icon="fa-chart-line" iconClass="blue" label="Avg CGPA" value={avgCgpa} delay={3} />
+            <StatCard icon="fa-users" iconClass="orange" label="Total Students" value={students.length} delay={4} />
+          </div>
+          <div className="grid-2">
+            <div className="card animate-fadeIn stagger-2">
+              <div className="card-header"><h3 className="card-title">Performance Comparison</h3>
+                <select className="input" style={{width:'auto',fontSize:'12px'}} value={chartType} onChange={e=>setChartType(e.target.value)}>
+                  <option value="performance">Bar Chart</option><option value="trend">Line Chart</option>
+                </select>
+              </div>
+              <canvas ref={chartRef1} height="250"></canvas>
+            </div>
+            <div className="card animate-fadeIn stagger-3">
+              <div className="card-header"><h3 className="card-title">Score Distribution</h3></div>
+              <canvas ref={chartRef2} height="250"></canvas>
+            </div>
+          </div>
+          <div className="card animate-fadeIn stagger-4" style={{marginTop:'24px'}}>
+            <div className="card-header"><h3 className="card-title">Detailed Statistics</h3></div>
+            <div className="table-container">
+              <table><thead><tr><th>Student</th><th>Attendance</th><th>Quiz Avg</th><th>CGPA</th><th>Backlogs</th><th>Risk Level</th></tr></thead>
+              <tbody>{students.map(s=> {
+                const risk = s.attendance<75 || s.quizAverage<60 || s.cgpa<7 ? 'HIGH' : s.attendance<85 || s.quizAverage<75 ? 'MEDIUM' : 'LOW';
+                return <tr key={s.id}><td className="td-name"><div className="td-avatar">{s.name.charAt(0)}</div><div className="td-info"><span className="name">{s.name}</span><span className="sub">{s.rollNo}</span></div></td>
+                <td><div className="progress-bar" style={{width:'60px',display:'inline-block',marginRight:'8px',verticalAlign:'middle'}}><div className={`fill ${s.attendance>80?'success':s.attendance>70?'warning':'danger'}`} style={{width:`${s.attendance}%`}}></div></div>{s.attendance}%</td>
+                <td>{s.quizAverage}%</td><td>{s.cgpa}</td><td>{s.backlogs}</td>
+                <td><span className={`badge ${risk==='HIGH'?'badge-danger':risk==='MEDIUM'?'badge-warning':'badge-success'}`}>{risk}</span></td></tr>;
+              })}</tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ===================== STUDENTS =====================
+    function StudentsPage({ onModal }) {
+      const [search, setSearch] = useState('');
+      const [selectedDept, setSelectedDept] = useState('ALL');
+      const students = API.getStudents().filter(s=> {
+        const matchesSearch = s.name.toLowerCase().includes(search.toLowerCase()) || s.rollNo.toLowerCase().includes(search.toLowerCase());
+        const matchesDept = selectedDept==='ALL' || s.department===selectedDept;
+        return matchesSearch && matchesDept;
+      });
+
+      const viewStudent = (student) => {
+        onModal({
+          isOpen: true, title: `${student.name} - Profile`, onClose: ()=>onModal(null),
+          children: (
+            <div>
+              <div style={{display:'flex',gap:'20px',marginBottom:'24px',alignItems:'center'}}>
+                <div style={{width:'80px',height:'80px',borderRadius:'50%',background:'var(--primary-gradient)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'32px',color:'white',fontWeight:800}}>{student.name.charAt(0)}</div>
+                <div><h2 style={{fontSize:'22px',fontWeight:800}}>{student.name}</h2><p style={{color:'var(--text-secondary)'}}>{student.rollNo} · {API.getClassById(student.classId)?.name}</p></div>
+              </div>
+              <div className="grid-2">
+                <div><label className="form-label">Department</label><div className="input" style={{marginBottom:'12px'}}>{API.getDepartmentById ? API.getDepartmentById(student.department)?.name : student.department}</div></div>
+                <div><label className="form-label">Semester</label><div className="input" style={{marginBottom:'12px'}}>{student.semester}</div></div>
+                <div><label className="form-label">CGPA</label><div className="input" style={{marginBottom:'12px'}}>{student.cgpa}</div></div>
+                <div><label className="form-label">Attendance</label><div className="input" style={{marginBottom:'12px'}}>{student.attendance}%</div></div>
+                <div><label className="form-label">Guardian</label><div className="input" style={{marginBottom:'12px'}}>{student.guardian}</div></div>
+                <div><label className="form-label">Phone</label><div className="input" style={{marginBottom:'12px'}}>{student.guardianPhone}</div></div>
+              </div>
+            </div>
+          )
+        });
+      };
+
+      return (
+        <div>
+          <div className="card animate-fadeIn" style={{marginBottom:'24px'}}>
+            <div style={{display:'flex',gap:'12px',flexWrap:'wrap'}}>
+              <div className="input-group" style={{flex:1,minWidth:'200px'}}>
+                <input className="input" placeholder="Search students..." value={search} onChange={e=>setSearch(e.target.value)} />
+                <button className="btn btn-primary"><i className="fas fa-search"></i></button>
+              </div>
+              <select className="input" style={{width:'auto'}} value={selectedDept} onChange={e=>setSelectedDept(e.target.value)}>
+                <option value="ALL">All Departments</option>{API.getDepartments().map(d=><option key={d.id} value={d.id}>{d.name}</option>)}
+              </select>
+              <button className="btn btn-primary" onClick={()=>showToast('Add student form opened','info')}><i className="fas fa-plus"></i> Add Student</button>
+            </div>
+          </div>
+          <div className="card animate-fadeIn">
+            <div className="table-container">
+              <table><thead><tr><th>Student</th><th>Roll No</th><th>Class</th><th>Attendance</th><th>Quiz Avg</th><th>CGPA</th><th>Actions</th></tr></thead>
+              <tbody>{students.map(s=> (
+                <tr key={s.id}><td className="td-name"><div className="td-avatar">{s.name.charAt(0)}</div><div className="td-info"><span className="name">{s.name}</span><span className="sub">{API.getDepartmentById ? API.getDepartmentById(s.department)?.code : s.department}</span></div></td>
+                <td>{s.rollNo}</td><td>{API.getClassById(s.classId)?.name}</td>
+                <td><span className={`badge ${s.attendance>=75?'badge-success':'badge-danger'}`}>{s.attendance}%</span></td>
+                <td>{s.quizAverage}%</td><td>{s.cgpa}</td>
+                <td><button className="btn btn-sm btn-secondary" onClick={()=>viewStudent(s)}><i className="fas fa-eye"></i></button></td></tr>
+              ))}</tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ===================== TEACHERS =====================
+    function TeachersPage() {
+      return (
+        <div>
+          <div className="card animate-fadeIn" style={{marginBottom:'24px'}}>
+            <div className="card-header"><h3 className="card-title">Faculty Directory</h3><button className="btn btn-primary btn-sm" onClick={()=>showToast('Add teacher form opened','info')}><i className="fas fa-plus"></i> Add Teacher</button></div>
+          </div>
+          <div className="grid-2">{API.getTeachers().map(t=> (
+            <div key={t.id} className="card animate-fadeIn">
+              <div style={{display:'flex',gap:'16px',alignItems:'flex-start'}}>
+                <div style={{width:'56px',height:'56px',borderRadius:'50%',background:'var(--primary-gradient)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'22px',color:'white',fontWeight:700,flexShrink:0}}>{t.name.charAt(0)}</div>
+                <div style={{flex:1}}>
+                  <h4 style={{fontWeight:700,marginBottom:'4px'}}>{t.name}</h4>
+                  <p style={{fontSize:'13px',color:'var(--text-secondary)',marginBottom:'8px'}}>{t.qualification}</p>
+                  <div style={{display:'flex',gap:'8px',flexWrap:'wrap',marginBottom:'12px'}}>
+                    <span className="badge badge-secondary">{API.getDepartmentById ? API.getDepartmentById(t.department)?.name : t.department}</span>
+                    <span className="badge badge-info">{t.experience} years exp</span>
+                  </div>
+                  <div style={{fontSize:'13px',color:'var(--text-light)'}}><i className="fas fa-lightbulb"></i> {t.specialization}</div>
+                  <div style={{marginTop:'12px',paddingTop:'12px',borderTop:'1px solid var(--border-light)'}}>
+                    <span style={{fontSize:'12px',color:'var(--text-secondary)'}}>Subjects: {t.subjects.map(sid=>API.getSubjectById(sid)?.code).join(', ')}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}</div>
+        </div>
+      );
+    }
+
+    // ===================== CLASSES =====================
+    function ClassesPage() {
+      return (
+        <div>
+          <div className="grid-2">{API.getClasses().map(c=> {
+            const students = API.getStudents().filter(s=>s.classId===c.id);
+            const avgAtt = students.length ? Math.round(students.reduce((s,a)=>s+(a.attendance||0),0)/students.length) : 0;
+            return (
+              <div key={c.id} className="card animate-fadeIn">
+                <div className="card-header"><h3 className="card-title">{c.name}</h3><span className="badge badge-primary">Sem {c.semester}</span></div>
+                <div className="grid-2" style={{gap:'12px'}}>
+                  <div style={{padding:'16px',background:'var(--bg-primary)',borderRadius:'12px',textAlign:'center'}}>
+                    <div style={{fontSize:'28px',fontWeight:800,color:'var(--primary)'}}>{students.length}</div>
+                    <div style={{fontSize:'12px',color:'var(--text-secondary)'}}>Students</div>
+                  </div>
+                  <div style={{padding:'16px',background:'var(--bg-primary)',borderRadius:'12px',textAlign:'center'}}>
+                    <div style={{fontSize:'28px',fontWeight:800,color:'var(--success)'}}>{avgAtt}%</div>
+                    <div style={{fontSize:'12px',color:'var(--text-secondary)'}}>Avg Attendance</div>
+                  </div>
+                </div>
+                <div style={{marginTop:'16px'}}>
+                  <div style={{fontSize:'13px',color:'var(--text-secondary)',marginBottom:'8px'}}>Department: {API.getDepartmentById ? API.getDepartmentById(c.department)?.name : c.department}</div>
+                  <div style={{fontSize:'13px',color:'var(--text-secondary)'}}>Capacity: {c.capacity} | Section: {c.section}</div>
+                </div>
+              </div>
+            );
+          })}</div>
+        </div>
+      );
+    }
+
+    // ===================== MESSAGES =====================
+    function MessagesPage({ user }) {
+      const [messages, setMessages] = useState(API.getMessages(user.id));
+      const [composeOpen, setComposeOpen] = useState(false);
+      const [newMsg, setNewMsg] = useState({to:'', subject:'', content:''});
+
+      const sendMessage = () => {
+        if (!newMsg.to || !newMsg.subject || !newMsg.content) { showToast('Fill all fields','error'); return; }
+        DB.messages.push({ id:`m-${Date.now()}`, from:user.id, to:newMsg.to, subject:newMsg.subject, content:newMsg.content, timestamp:new Date().toISOString(), read:false });
+        setMessages(API.getMessages(user.id)); setComposeOpen(false); setNewMsg({to:'',subject:'',content:''});
+        showToast('Message sent successfully','success');
+      };
+
+      return (
+        <div>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'24px'}}>
+            <h2 style={{fontSize:'20px',fontWeight:800}}>Messages</h2>
+            <button className="btn btn-primary" onClick={()=>setComposeOpen(true)}><i className="fas fa-plus"></i> Compose</button>
+          </div>
+          <div className="card animate-fadeIn">
+            {messages.length>0 ? messages.map(m=> {
+              const isSent = m.from === user.id;
+              const other = isSent ? DB.users.find(u=>u.id===m.to) : DB.users.find(u=>u.id===m.from);
+              return (
+                <div key={m.id} style={{padding:'16px',borderBottom:'1px solid var(--border-light)',display:'flex',gap:'14px',alignItems:'flex-start'}}>
+                  <div style={{width:'40px',height:'40px',borderRadius:'50%',background:'var(--primary-gradient)',display:'flex',alignItems:'center',justifyContent:'center',color:'white',fontWeight:700,flexShrink:0}}>{other?.name.charAt(0)}</div>
+                  <div style={{flex:1}}>
+                    <div style={{display:'flex',justifyContent:'space-between',marginBottom:'4px'}}>
+                      <span style={{fontWeight:700}}>{isSent?'To: ':'From: '}{other?.name}</span>
+                      <span style={{fontSize:'12px',color:'var(--text-light)'}}>{new Date(m.timestamp).toLocaleString()}</span>
+                    </div>
+                    <div style={{fontWeight:600,marginBottom:'4px'}}>{m.subject}</div>
+                    <div style={{fontSize:'13px',color:'var(--text-secondary)'}}>{m.content}</div>
+                  </div>
+                </div>
+              );
+            }) : <EmptyState icon="fa-envelope-open" title="No messages" description="Your inbox is empty" />}
+          </div>
+          {composeOpen && (
+            <Modal isOpen={composeOpen} onClose={()=>setComposeOpen(false)} title="Compose Message" footer={<><button className="btn btn-secondary" onClick={()=>setComposeOpen(false)}>Cancel</button><button className="btn btn-primary" onClick={sendMessage}><i className="fas fa-paper-plane"></i> Send</button></>}>
+              <div className="form-group"><label className="form-label">To</label><select className="input" value={newMsg.to} onChange={e=>setNewMsg({...newMsg,to:e.target.value})}><option value="">Select recipient</option>{DB.users.filter(u=>u.id!==user.id).map(u=><option key={u.id} value={u.id}>{u.name} ({u.role})</option>)}</select></div>
+              <div className="form-group"><label className="form-label">Subject</label><input className="input" value={newMsg.subject} onChange={e=>setNewMsg({...newMsg,subject:e.target.value})} placeholder="Enter subject" /></div>
+              <div className="form-group"><label className="form-label">Message</label><textarea className="input" rows="4" value={newMsg.content} onChange={e=>setNewMsg({...newMsg,content:e.target.value})} placeholder="Type your message..." style={{resize:'vertical'}}></textarea></div>
+            </Modal>
+          )}
+        </div>
+      );
+    }
+
+    // ===================== ANNOUNCEMENTS =====================
+    function AnnouncementsPage({ user, role, viewAs }) {
+      const effectiveRole = viewAs || role;
+      const [showAdd, setShowAdd] = useState(false);
+      const [newAnn, setNewAnn] = useState({title:'', content:'', priority:'MEDIUM', audience:'ALL'});
+      const announcements = API.getAnnouncements();
+
+      const createAnnouncement = () => {
+        if (!newAnn.title || !newAnn.content) { showToast('Fill all fields','error'); return; }
+        DB.announcements.push({ id:`an-${Date.now()}`, ...newAnn, createdAt:new Date().toISOString(), createdBy:user.id });
+        setShowAdd(false); setNewAnn({title:'',content:'',priority:'MEDIUM',audience:'ALL'});
+        showToast('Announcement published','success');
+      };
+
+      return (
+        <div>
+          {effectiveRole==='ADMIN' && (
+            <div style={{display:'flex',justifyContent:'flex-end',marginBottom:'24px'}}>
+              <button className="btn btn-primary" onClick={()=>setShowAdd(true)}><i className="fas fa-plus"></i> New Announcement</button>
+            </div>
+          )}
+          <div className="grid-2">{announcements.map(a=> (
+            <div key={a.id} className="card animate-fadeIn">
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:'12px'}}>
+                <span className={`badge ${a.priority==='HIGH'?'badge-danger':'badge-info'}`}>{a.priority}</span>
+                <span className="badge badge-secondary">{a.audience}</span>
+              </div>
+              <h3 style={{fontSize:'18px',fontWeight:700,marginBottom:'8px'}}>{a.title}</h3>
+              <p style={{color:'var(--text-secondary)',fontSize:'14px',lineHeight:'1.6',marginBottom:'16px'}}>{a.content}</p>
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',fontSize:'12px',color:'var(--text-light)'}}>
+                <span><i className="fas fa-user"></i> {DB.users.find(u=>u.id===a.createdBy)?.name}</span>
+                <span><i className="fas fa-clock"></i> {new Date(a.createdAt).toLocaleDateString()}</span>
+              </div>
+            </div>
+          ))}</div>
+          {showAdd && (
+            <Modal isOpen={showAdd} onClose={()=>setShowAdd(false)} title="New Announcement" footer={<><button className="btn btn-secondary" onClick={()=>setShowAdd(false)}>Cancel</button><button className="btn btn-primary" onClick={createAnnouncement}><i className="fas fa-bullhorn"></i> Publish</button></>}>
+              <div className="form-group"><label className="form-label">Title</label><input className="input" value={newAnn.title} onChange={e=>setNewAnn({...newAnn,title:e.target.value})} placeholder="Announcement title" /></div>
+              <div className="form-group"><label className="form-label">Content</label><textarea className="input" rows="4" value={newAnn.content} onChange={e=>setNewAnn({...newAnn,content:e.target.value})} placeholder="Announcement details..." style={{resize:'vertical'}}></textarea></div>
+              <div className="grid-2">
+                <div className="form-group"><label className="form-label">Priority</label><select className="input" value={newAnn.priority} onChange={e=>setNewAnn({...newAnn,priority:e.target.value})}><option>HIGH</option><option>MEDIUM</option><option>LOW</option></select></div>
+                <div className="form-group"><label className="form-label">Audience</label><select className="input" value={newAnn.audience} onChange={e=>setNewAnn({...newAnn,audience:e.target.value})}><option value="ALL">Everyone</option><option value="STUDENT">Students</option><option value="TEACHER">Teachers</option></select></div>
+              </div>
+            </Modal>
+          )}
+        </div>
+      );
+    }
+
+    // ===================== SETTINGS =====================
+    function SettingsPage({ theme, toggleTheme }) {
+      const [activeTab, setActiveTab] = useState('profile');
+      const user = API.getCurrentUser();
+      return (
+        <div className="grid-2">
+          <div className="card animate-fadeIn">
+            <div className="card-header"><h3 className="card-title"><i className="fas fa-user-cog"></i> Profile Settings</h3></div>
+            <div className="form-group"><label className="form-label">Full Name</label><input className="input" value={user?.name||''} readOnly /></div>
+            <div className="form-group"><label className="form-label">Email</label><input className="input" value={user?.email||''} readOnly /></div>
+            <div className="form-group"><label className="form-label">Phone</label><input className="input" value={user?.phone||''} readOnly /></div>
+            <div className="form-group"><label className="form-label">Role</label><input className="input" value={user?.role||''} readOnly /></div>
+            <button className="btn btn-primary" onClick={()=>showToast('Profile updated','success')}><i className="fas fa-save"></i> Save Changes</button>
+          </div>
+          <div className="card animate-fadeIn">
+            <div className="card-header"><h3 className="card-title"><i className="fas fa-palette"></i> Appearance</h3></div>
+            <div style={{display:'flex',gap:'16px',marginBottom:'24px'}}>
+              <button className={`btn ${theme==='light'?'btn-primary':'btn-secondary'}`} onClick={()=>theme!=='light'&&toggleTheme()} style={{flex:1}}><i className="fas fa-sun"></i> Light</button>
+              <button className={`btn ${theme==='dark'?'btn-primary':'btn-secondary'}`} onClick={()=>theme!=='dark'&&toggleTheme()} style={{flex:1}}><i className="fas fa-moon"></i> Dark</button>
+            </div>
+            <div style={{padding:'16px',background:'var(--bg-primary)',borderRadius:'12px'}}>
+              <h4 style={{fontSize:'14px',fontWeight:700,marginBottom:'8px'}}>System Information</h4>
+              <div style={{fontSize:'13px',color:'var(--text-secondary)',lineHeight:'1.8'}}>
+                <div>Institution: {API.getSettings().institutionName}</div>
+                <div>Semester: {API.getSettings().semester}</div>
+                <div>Version: EDUTrack Pro v3.0</div>
+                <div>Database: Connected</div>
+                <div>AI Engine: Active</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ===================== RENDER =====================
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>
