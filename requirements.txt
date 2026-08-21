@@ -1,0 +1,25 @@
+# EDUTrack AI Pro - Requirements
+# ================================
+
+# No Python/Node.js dependencies required!
+# This is a pure client-side application.
+
+# Browser Dependencies (loaded via CDN):
+# - React 18 (UMD)
+# - React DOM 18 (UMD)
+# - Babel Standalone
+# - Chart.js 4.4.0
+# - Font Awesome 6.5.0
+# - Google Fonts (Inter & Space Grotesk)
+
+# To run locally, simply open index.html in any modern browser.
+# No installation or build process needed.
+
+# For development server (optional):
+# ------------------------------------
+# If you want a local development server:
+# npm install -g serve
+# serve .
+
+# Or using Python:
+# python3 -m http.server 8000
